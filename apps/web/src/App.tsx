@@ -1,6 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ProjectListPage from './pages/ProjectListPage';
+import ProjectBoardPage from './pages/ProjectBoardPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -14,7 +16,10 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Layout>
-              <div className="p-8">Board se hien thi o day</div>
+              <Routes>
+                <Route path="/" element={<ProjectListPage />} />
+                <Route path="/projects/:projectId" element={<ProjectBoardPage />} />
+              </Routes>
             </Layout>
           </ProtectedRoute>
         }
