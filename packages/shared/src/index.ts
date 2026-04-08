@@ -1,0 +1,73 @@
+export enum Role {
+  ADMIN = 'ADMIN',
+  PM = 'PM',
+  MEMBER = 'MEMBER',
+}
+
+export enum TaskStatus {
+  TODO = 'TODO',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
+}
+
+export enum TaskPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+}
+
+export interface UserDto {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  createdAt: string;
+}
+
+export interface ProjectDto {
+  id: string;
+  name: string;
+  description: string | null;
+  createdAt: string;
+}
+
+export interface BuildDto {
+  id: string;
+  name: string;
+  projectId: string;
+  month: number;
+  year: number;
+  createdAt: string;
+}
+
+export interface TaskDto {
+  id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  startDate: string;
+  endDate: string;
+  completedAt: string | null;
+  week: number;
+  buildId: string;
+  build?: BuildDto;
+  assigneeId: string;
+  assignee?: UserDto;
+  createdById: string;
+  projectId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeekGroup {
+  week: number;
+  startDate: string;
+  endDate: string;
+  members: MemberGroup[];
+}
+
+export interface MemberGroup {
+  user: UserDto;
+  tasks: TaskDto[];
+}
