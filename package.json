@@ -1,0 +1,13 @@
+{
+  "name": "ctp1-task-manager",
+  "private": true,
+  "scripts": {
+    "dev:api": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev": "pnpm run dev:api & pnpm run dev:web",
+    "build": "pnpm -r build"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}
