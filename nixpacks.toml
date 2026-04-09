@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["nodejs_20", "openssl"]
+
+[phases.install]
+cmds = ["npm i -g pnpm@10", "pnpm install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["cd apps/api && npx prisma generate && npx nest build"]
+
+[start]
+cmd = "cd apps/api && npx prisma migrate deploy && node dist/main"
