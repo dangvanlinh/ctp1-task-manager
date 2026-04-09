@@ -8,49 +8,49 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'admin@ctp1.vn', password: hash, name: 'Admin', role: 'ADMIN' },
   });
 
   const pm = await prisma.user.upsert({
     where: { email: 'pm@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'pm@ctp1.vn', password: hash, name: 'Hung PM', role: 'PM' },
   });
 
   const thai = await prisma.user.upsert({
     where: { email: 'thai@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'thai@ctp1.vn', password: hash, name: 'A Thai', role: 'MEMBER' },
   });
 
   const vu = await prisma.user.upsert({
     where: { email: 'vu@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'vu@ctp1.vn', password: hash, name: 'Vu', role: 'MEMBER' },
   });
 
   const long = await prisma.user.upsert({
     where: { email: 'long@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'long@ctp1.vn', password: hash, name: 'Long', role: 'MEMBER' },
   });
 
   const tien = await prisma.user.upsert({
     where: { email: 'tien@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'tien@ctp1.vn', password: hash, name: 'Tien', role: 'MEMBER' },
   });
 
   const linh = await prisma.user.upsert({
     where: { email: 'linh@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'linh@ctp1.vn', password: hash, name: 'Linh', role: 'MEMBER' },
   });
 
   const dat = await prisma.user.upsert({
     where: { email: 'dat@ctp1.vn' },
-    update: {},
+    update: { password: hash },
     create: { email: 'dat@ctp1.vn', password: hash, name: 'Dat', role: 'MEMBER' },
   });
 

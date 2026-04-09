@@ -21,7 +21,7 @@ export class TasksService {
         assignee: { select: { id: true, email: true, name: true, role: true, createdAt: true } },
         build: true,
       },
-      orderBy: [{ week: 'asc' }, { assigneeId: 'asc' }, { startDate: 'asc' }],
+      orderBy: [{ week: 'asc' }, { assigneeId: 'asc' }, { order: 'asc' }, { startDate: 'asc' }],
     });
   }
 
@@ -69,6 +69,14 @@ export class TasksService {
         build: true,
       },
     });
+  }
+
+  async reorder(items: { id: string; order: number }[]) {
+    const updates = items.map((item) =>
+      this.prisma.task.update({ where: { id: item.id }, data: { order: item.order } }),
+    );
+    await this.prisma.$transaction(updates);
+    return { success: true };
   }
 
   async remove(id: string) {

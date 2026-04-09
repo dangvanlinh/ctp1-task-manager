@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchTasks, createTask, updateTask, deleteTask } from '../api/tasks';
+import { fetchTasks, createTask, updateTask, deleteTask, reorderTasks } from '../api/tasks';
 
 export function useTasks(projectId: string, month: number, year: number) {
   return useQuery({
@@ -21,6 +21,14 @@ export function useUpdateTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string } & Record<string, any>) => updateTask(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+
+export function useReorderTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reorderTasks,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
   });
 }

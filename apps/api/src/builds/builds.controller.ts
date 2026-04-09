@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
 import { BuildsService } from './builds.service';
 import { CreateBuildDto } from './dto/create-build.dto';
 import { UpdateBuildDto } from './dto/update-build.dto';
@@ -23,8 +23,8 @@ export class BuildsController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('ADMIN', 'PM')
-  create(@Body() dto: CreateBuildDto) {
-    return this.buildsService.create(dto);
+  create(@Body() dto: CreateBuildDto, @Request() req: any) {
+    return this.buildsService.create(dto, req.user.id);
   }
 
   @Patch(':id')
@@ -39,5 +39,19 @@ export class BuildsController {
   @Roles('ADMIN', 'PM')
   remove(@Param('id') id: string) {
     return this.buildsService.remove(id);
+  }
+
+  @Post(':id/milestones')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN', 'PM')
+  addMilestone(@Param('id') id: string, @Body() body: { name: string; date: string; type?: string }) {
+    return this.buildsService.addMilestone(id, body);
+  }
+
+  @Delete('milestones/:milestoneId')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN', 'PM')
+  removeMilestone(@Param('milestoneId') milestoneId: string) {
+    return this.buildsService.removeMilestone(milestoneId);
   }
 }

@@ -21,7 +21,7 @@ export class AuthService {
       data: { email: dto.email, password: hash, name: dto.name },
     });
 
-    return this.generateTokens(user.id, user.email, user.role);
+    return this.generateTokens(user.id, user.email, user.role, user.name);
   }
 
   async login(dto: LoginDto) {
@@ -31,17 +31,17 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.password);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    return this.generateTokens(user.id, user.email, user.role);
+    return this.generateTokens(user.id, user.email, user.role, user.name);
   }
 
   async refresh(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException();
-    return this.generateTokens(user.id, user.email, user.role);
+    return this.generateTokens(user.id, user.email, user.role, user.name);
   }
 
-  private generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private generateTokens(userId: string, email: string, role: string, name?: string) {
+    const payload = { sub: userId, email, role, name: name ?? email.split('@')[0] };
     return {
       accessToken: this.jwt.sign(payload, { expiresIn: '1h' }),
       refreshToken: this.jwt.sign(payload, { expiresIn: '7d' }),

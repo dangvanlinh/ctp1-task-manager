@@ -29,6 +29,10 @@ export class UpdateTaskDto {
   endDate?: string;
 
   @IsInt()
+  @IsOptional()
+  order?: number;
+
+  @IsInt()
   @Min(1)
   @Max(4)
   @IsOptional()

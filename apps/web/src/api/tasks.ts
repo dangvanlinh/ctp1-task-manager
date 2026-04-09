@@ -14,7 +14,7 @@ export function createTask(data: {
   startDate: string;
   endDate: string;
   week: number;
-  buildId: string;
+  buildId?: string;
   assigneeId: string;
   projectId: string;
 }) {
@@ -23,6 +23,10 @@ export function createTask(data: {
 
 export function updateTask(id: string, data: Record<string, any>) {
   return apiFetch<TaskDto>(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+}
+
+export function reorderTasks(items: { id: string; order: number }[]) {
+  return apiFetch('/tasks/reorder', { method: 'PATCH', body: JSON.stringify({ items }) });
 }
 
 export function deleteTask(id: string) {

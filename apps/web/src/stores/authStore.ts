@@ -6,9 +6,32 @@ interface AuthState {
   token: string | null;
 }
 
+function parseUserFromToken(token: string | null): UserDto | null {
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    // Check expiry
+    if (payload.exp && payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('accessToken');
+      return null;
+    }
+    return {
+      id: payload.sub,
+      email: payload.email,
+      name: payload.name || payload.email.split('@')[0],
+      role: payload.role,
+      createdAt: '',
+    } as UserDto;
+  } catch {
+    return null;
+  }
+}
+
+const savedToken = localStorage.getItem('accessToken');
+
 let state: AuthState = {
-  user: null,
-  token: localStorage.getItem('accessToken'),
+  user: parseUserFromToken(savedToken),
+  token: savedToken,
 };
 
 const listeners = new Set<() => void>();
@@ -25,6 +48,7 @@ export function setAuth(token: string, user: UserDto) {
 
 export function clearAuth() {
   localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
   state = { user: null, token: null };
   emit();
 }

@@ -21,12 +21,17 @@ export class CreateTaskDto {
   endDate!: string;
 
   @IsInt()
+  @IsOptional()
+  order?: number;
+
+  @IsInt()
   @Min(1)
-  @Max(4)
+  @Max(52)
   week!: number;
 
   @IsUUID()
-  buildId!: string;
+  @IsOptional()
+  buildId?: string;
 
   @IsUUID()
   assigneeId!: string;

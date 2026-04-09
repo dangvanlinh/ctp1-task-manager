@@ -3,33 +3,66 @@ import { WeekRow } from './TreeRow';
 
 interface Props {
   grouped: Map<number, Map<string, { user: UserDto; tasks: TaskDto[] }>>;
+  activeWeeks: number[];
   expandedWeeks: Set<number>;
   expandedMembers: Set<string>;
+  weeksWithTasks: Set<number>;
   onToggleWeek: (week: number) => void;
   onToggleMember: (key: string) => void;
+  onCreateInlineTask?: (title: string, userId: string, week: number) => void;
+  onAddWeek: () => void;
+  onRemoveWeek: (week: number) => void;
+  onDeleteTask?: (taskId: string) => void;
+  onUpdateTask?: (taskId: string, data: Record<string, any>) => void;
+  onReorderTasks?: (items: { id: string; order: number }[]) => void;
 }
 
-export default function TreeTable({ grouped, expandedWeeks, expandedMembers, onToggleWeek, onToggleMember }: Props) {
+export default function TreeTable({ grouped, activeWeeks, expandedWeeks, expandedMembers, weeksWithTasks, onToggleWeek, onToggleMember, onCreateInlineTask, onAddWeek, onRemoveWeek, onDeleteTask, onUpdateTask, onReorderTasks }: Props) {
   return (
-    <div className="overflow-auto">
+    <div className="overflow-auto text-xs">
       <table className="w-full text-left">
         <thead>
-          <tr className="border-b text-sm text-gray-500 bg-gray-50 sticky top-0">
-            <th className="px-4 py-2 font-medium">Summary</th>
-            <th className="px-4 py-2 font-medium w-28">Start Date</th>
-            <th className="px-4 py-2 font-medium w-28">End Date</th>
-            <th className="px-4 py-2 font-medium w-32">Assignee</th>
-            <th className="px-4 py-2 font-medium w-28">Status</th>
+          <tr className="border-b text-xs text-gray-500 bg-gray-50 sticky top-0 whitespace-nowrap" style={{ height: 32 }}>
+            <th className="px-3 py-0 font-medium">Summary</th>
+            <th className="px-3 py-0 font-medium">Start</th>
+            <th className="px-3 py-0 font-medium">End</th>
+            <th className="px-3 py-0 font-medium">Assignee</th>
+            <th className="px-3 py-0 font-medium">Status</th>
           </tr>
         </thead>
         <tbody>
-          {[1, 2, 3, 4].map((week) => {
+          {activeWeeks.map((week) => {
             const members = grouped.get(week);
-            if (!members || members.size === 0) return null;
+            if (!members) return null;
             return (
-              <WeekRow key={week} week={week} members={members} expanded={expandedWeeks.has(week)} expandedMembers={expandedMembers} onToggleWeek={() => onToggleWeek(week)} onToggleMember={onToggleMember} />
+              <WeekRow
+                key={week}
+                week={week}
+                members={members}
+                expanded={expandedWeeks.has(week)}
+                expandedMembers={expandedMembers}
+                onToggleWeek={() => onToggleWeek(week)}
+                onToggleMember={onToggleMember}
+                onCreateInlineTask={onCreateInlineTask}
+                onDeleteTask={onDeleteTask}
+                onUpdateTask={onUpdateTask}
+                onReorderTasks={onReorderTasks}
+                canRemove={!weeksWithTasks.has(week)}
+                onRemoveWeek={() => onRemoveWeek(week)}
+              />
             );
           })}
+          {/* Add week row */}
+          <tr style={{ height: 32 }}>
+            <td colSpan={5} className="px-4 py-0">
+              <button
+                onClick={onAddWeek}
+                className="text-sm text-blue-500 hover:text-blue-700 font-medium"
+              >
+                + Thêm tuần
+              </button>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>

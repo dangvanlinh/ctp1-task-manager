@@ -31,13 +31,40 @@ export interface ProjectDto {
   createdAt: string;
 }
 
+export enum MilestoneType {
+  BUILD = 'BUILD',
+  REVIEW = 'REVIEW',
+  SENDOUT = 'SENDOUT',
+  LIVE = 'LIVE',
+}
+
+export interface BuildMilestoneDto {
+  id: string;
+  name: string;
+  date: string;
+  type: MilestoneType;
+  buildId: string;
+}
+
+export interface BuildAssigneeDto {
+  id: string;
+  buildId: string;
+  userId: string;
+  user?: UserDto;
+}
+
 export interface BuildDto {
   id: string;
   name: string;
   projectId: string;
   month: number;
   year: number;
+  startDate: string | null;
+  liveDate: string | null;
+  endDate: string | null;
   createdAt: string;
+  milestones?: BuildMilestoneDto[];
+  assignees?: BuildAssigneeDto[];
 }
 
 export interface TaskDto {
@@ -49,6 +76,7 @@ export interface TaskDto {
   startDate: string;
   endDate: string;
   completedAt: string | null;
+  order: number;
   week: number;
   buildId: string;
   build?: BuildDto;

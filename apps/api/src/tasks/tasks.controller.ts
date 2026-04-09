@@ -28,6 +28,11 @@ export class TasksController {
     return this.tasksService.create(dto, req.user.id);
   }
 
+  @Patch('reorder')
+  reorder(@Body() body: { items: { id: string; order: number }[] }) {
+    return this.tasksService.reorder(body.items);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateTaskDto, @Request() req: any) {
     return this.tasksService.update(id, dto, req.user.id, req.user.role);
