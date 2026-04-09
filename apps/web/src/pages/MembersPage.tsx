@@ -8,7 +8,7 @@ export default function MembersPage() {
   const updateUser = useUpdateUser();
   const deleteUser = useDeleteUser();
   const resetPassword = useResetUserPassword();
-  const currentUser = useAuthStore((s) => s.user);
+  const currentUser = useAuthStore((s) => s.user) as { id: string; name: string; email: string; role: string } | null;
 
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
