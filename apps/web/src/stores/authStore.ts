@@ -53,12 +53,15 @@ export function clearAuth() {
   emit();
 }
 
-export function useAuthStore() {
-  return useSyncExternalStore(
+export function useAuthStore(): AuthState;
+export function useAuthStore<T>(selector: (s: AuthState) => T): T;
+export function useAuthStore<T>(selector?: (s: AuthState) => T) {
+  const snapshot = useSyncExternalStore(
     (cb) => {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
     () => state,
   );
+  return selector ? selector(snapshot) : snapshot;
 }
