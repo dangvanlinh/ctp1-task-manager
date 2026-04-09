@@ -31,7 +31,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     }
   }, [token]);
 
-  if (!token && autoLoginFailed) return <Navigate to="/login" replace />;
+  if (!token && (autoLoginFailed || !import.meta.env.DEV)) return <Navigate to="/login" replace />;
   if (!token) return <div className="min-h-screen flex items-center justify-center text-gray-400">Đang đăng nhập...</div>;
   return <>{children}</>;
 }
