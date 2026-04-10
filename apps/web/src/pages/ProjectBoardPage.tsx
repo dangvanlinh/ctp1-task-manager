@@ -15,6 +15,11 @@ import type { TaskDto, UserDto } from '@ctp1/shared';
 
 const DAY_WIDTH = 40;
 
+function sortUsersByPosition(users: UserDto[]): UserDto[] {
+  const order: Record<string, number> = { DESIGNER: 0, DEV: 1, ARTIST: 2 };
+  return [...users].sort((a, b) => (order[a.position] ?? 99) - (order[b.position] ?? 99));
+}
+
 function groupTasksByWeekAndMember(
   tasks: TaskDto[],
   allUsers: UserDto[],
@@ -22,11 +27,12 @@ function groupTasksByWeekAndMember(
   hasFilter = false,
 ): Map<number, Map<string, { user: UserDto; tasks: TaskDto[] }>> {
   const weekMap = new Map<number, Map<string, { user: UserDto; tasks: TaskDto[] }>>();
+  const sortedUsers = sortUsersByPosition(allUsers);
 
   for (const week of activeWeeks) {
     const memberMap = new Map<string, { user: UserDto; tasks: TaskDto[] }>();
     if (!hasFilter) {
-      for (const user of allUsers) {
+      for (const user of sortedUsers) {
         memberMap.set(user.id, { user, tasks: [] });
       }
     }

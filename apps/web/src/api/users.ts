@@ -5,7 +5,7 @@ export function fetchUsers() {
   return apiFetch<UserDto[]>('/users');
 }
 
-export function createUser(data: { email?: string; name: string; role?: string }) {
+export function createUser(data: { email?: string; name: string; role?: string; position?: string }) {
   return apiFetch<UserDto>('/users', { method: 'POST', body: JSON.stringify(data) });
 }
 

@@ -13,6 +13,7 @@ model User {
   password       String
   name           String
   role           String   @default("MEMBER")
+  position       String   @default("DEV")
   createdAt      DateTime @default(now())
   assignedTasks  Task[]          @relation("assignee")
   createdTasks   Task[]          @relation("creator")

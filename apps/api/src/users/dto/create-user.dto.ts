@@ -13,4 +13,9 @@ export class CreateUserDto {
   @IsIn(['MEMBER', 'PM', 'ADMIN'])
   @IsOptional()
   role?: string;
+
+  @IsString()
+  @IsIn(['DESIGNER', 'DEV', 'ARTIST'])
+  @IsOptional()
+  position?: string;
 }

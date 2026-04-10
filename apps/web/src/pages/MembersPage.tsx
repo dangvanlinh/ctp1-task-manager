@@ -14,34 +14,44 @@ export default function MembersPage() {
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('MEMBER');
+  const [newPosition, setNewPosition] = useState('DEV');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editRole, setEditRole] = useState('');
+  const [editPosition, setEditPosition] = useState('');
 
   const handleCreate = () => {
     if (!newName.trim()) return;
-    createUser.mutate({ email: newEmail.trim() || undefined, name: newName.trim(), role: newRole }, {
-      onSuccess: () => { setNewName(''); setNewEmail(''); setNewRole('MEMBER'); setShowForm(false); },
+    createUser.mutate({ email: newEmail.trim() || undefined, name: newName.trim(), role: newRole, position: newPosition }, {
+      onSuccess: () => { setNewName(''); setNewEmail(''); setNewRole('MEMBER'); setNewPosition('DEV'); setShowForm(false); },
     });
   };
 
   const handleUpdate = (id: string) => {
-    updateUser.mutate({ id, name: editName, email: editEmail, role: editRole }, {
+    updateUser.mutate({ id, name: editName, email: editEmail, role: editRole, position: editPosition }, {
       onSuccess: () => setEditingId(null),
     });
   };
 
-  const startEdit = (user: { id: string; name: string; email: string; role: string }) => {
+  const startEdit = (user: { id: string; name: string; email: string; role: string; position: string }) => {
     setEditingId(user.id);
     setEditName(user.name);
     setEditEmail(user.email);
     setEditRole(user.role);
+    setEditPosition(user.position);
   };
 
   const roleColor = (role: string) => {
     if (role === 'ADMIN') return 'bg-red-100 text-red-700';
     if (role === 'PM') return 'bg-blue-100 text-blue-700';
+    return 'bg-gray-100 text-gray-600';
+  };
+
+  const positionColor = (pos: string) => {
+    if (pos === 'DESIGNER') return 'bg-purple-100 text-purple-700';
+    if (pos === 'DEV') return 'bg-green-100 text-green-700';
+    if (pos === 'ARTIST') return 'bg-orange-100 text-orange-700';
     return 'bg-gray-100 text-gray-600';
   };
 
@@ -85,6 +95,15 @@ export default function MembersPage() {
               <option value="PM">PM</option>
               <option value="ADMIN">Admin</option>
             </select>
+            <select
+              value={newPosition}
+              onChange={(e) => setNewPosition(e.target.value)}
+              className="text-sm border rounded px-3 py-2 outline-none focus:border-blue-400"
+            >
+              <option value="DESIGNER">Designer</option>
+              <option value="DEV">Dev</option>
+              <option value="ARTIST">Artist</option>
+            </select>
             <button
               onClick={handleCreate}
               disabled={createUser.isPending}
@@ -110,6 +129,7 @@ export default function MembersPage() {
               <th className="text-left px-4 py-3 font-medium text-gray-600">Tên</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Email</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">Position</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Thao tác</th>
             </tr>
           </thead>
@@ -131,6 +151,13 @@ export default function MembersPage() {
                         <option value="ADMIN">Admin</option>
                       </select>
                     </td>
+                    <td className="px-4 py-2">
+                      <select value={editPosition} onChange={(e) => setEditPosition(e.target.value)} className="text-sm border rounded px-2 py-1 outline-none">
+                        <option value="DESIGNER">Designer</option>
+                        <option value="DEV">Dev</option>
+                        <option value="ARTIST">Artist</option>
+                      </select>
+                    </td>
                     <td className="px-4 py-2 text-right space-x-2">
                       <button onClick={() => handleUpdate(user.id)} className="text-blue-600 hover:text-blue-800 text-xs">Lưu</button>
                       <button onClick={() => setEditingId(null)} className="text-gray-400 hover:text-gray-600 text-xs">Hủy</button>
@@ -142,6 +169,9 @@ export default function MembersPage() {
                     <td className="px-4 py-3 text-gray-500">{user.email}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded font-medium ${roleColor(user.role)}`}>{user.role}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${positionColor(user.position)}`}>{user.position}</span>
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
                       <button onClick={() => startEdit(user)} className="text-blue-500 hover:text-blue-700 text-xs">Sửa</button>

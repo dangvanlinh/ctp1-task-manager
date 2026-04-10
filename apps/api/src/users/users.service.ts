@@ -10,11 +10,11 @@ export class UsersService {
 
   async findAll() {
     return this.prisma.user.findMany({
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, position: true, createdAt: true },
     });
   }
 
-  async create(data: { email?: string; name: string; role?: string }) {
+  async create(data: { email?: string; name: string; role?: string; position?: string }) {
     // Auto-generate email from name if not provided
     const email = data.email?.trim() || `${data.name.toLowerCase().replace(/\s+/g, '.')}@ctp1.vn`;
 
@@ -23,18 +23,18 @@ export class UsersService {
 
     const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
     return this.prisma.user.create({
-      data: { email, name: data.name, role: data.role ?? 'MEMBER', password: hash },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      data: { email, name: data.name, role: data.role ?? 'MEMBER', position: data.position ?? 'DEV', password: hash },
+      select: { id: true, email: true, name: true, role: true, position: true, createdAt: true },
     });
   }
 
-  async update(id: string, data: { name?: string; email?: string; role?: string }) {
+  async update(id: string, data: { name?: string; email?: string; role?: string; position?: string }) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('User not found');
     return this.prisma.user.update({
       where: { id },
       data,
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, position: true, createdAt: true },
     });
   }
 
@@ -51,7 +51,7 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data: { password: hash },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, position: true, createdAt: true },
     });
   }
 
@@ -61,7 +61,7 @@ export class UsersService {
     return this.prisma.user.update({
       where: { id },
       data: { role },
-      select: { id: true, email: true, name: true, role: true, createdAt: true },
+      select: { id: true, email: true, name: true, role: true, position: true, createdAt: true },
     });
   }
 }

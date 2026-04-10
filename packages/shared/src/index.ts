@@ -4,6 +4,18 @@ export enum Role {
   MEMBER = 'MEMBER',
 }
 
+export enum Position {
+  DESIGNER = 'DESIGNER',
+  DEV = 'DEV',
+  ARTIST = 'ARTIST',
+}
+
+export const POSITION_ORDER: Record<string, number> = {
+  DESIGNER: 0,
+  DEV: 1,
+  ARTIST: 2,
+};
+
 export enum TaskStatus {
   TODO = 'TODO',
   IN_PROGRESS = 'IN_PROGRESS',
@@ -21,6 +33,7 @@ export interface UserDto {
   email: string;
   name: string;
   role: Role;
+  position: string;
   createdAt: string;
 }
 
