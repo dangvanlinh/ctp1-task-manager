@@ -31,7 +31,7 @@ interface WeekRowProps {
   onUpdateTask?: (taskId: string, data: Record<string, any>) => void;
   onReorderTasks?: (items: { id: string; order: number }[]) => void;
   canRemove: boolean;
-  onRemoveWeek: () => void;
+  onRemoveWeek?: () => void;
 }
 
 export function WeekRow({ week, members, expanded, expandedMembers, onToggleWeek, onToggleMember, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks, canRemove, onRemoveWeek }: WeekRowProps) {
@@ -73,7 +73,7 @@ export function WeekRow({ week, members, expanded, expandedMembers, onToggleWeek
             </span>
             {canRemove && (
               <button
-                onClick={(e) => { e.stopPropagation(); onRemoveWeek(); }}
+                onClick={(e) => { e.stopPropagation(); onRemoveWeek?.(); }}
                 className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs px-1"
                 title="Xoá tuần"
               >
@@ -94,7 +94,7 @@ export function WeekRow({ week, members, expanded, expandedMembers, onToggleWeek
               tasks={tasks}
               expanded={memberExpanded}
               onToggle={() => onToggleMember(memberKey)}
-              onCreateInlineTask={(title) => onCreateInlineTask?.(title, userId, week)}
+              onCreateInlineTask={onCreateInlineTask ? (title) => onCreateInlineTask(title, userId, week) : undefined}
               onDeleteTask={onDeleteTask}
               onUpdateTask={onUpdateTask}
               onReorderTasks={onReorderTasks}
@@ -105,7 +105,7 @@ export function WeekRow({ week, members, expanded, expandedMembers, onToggleWeek
   );
 }
 
-function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks }: { user: UserDto; tasks: TaskDto[]; expanded: boolean; onToggle: () => void; onCreateInlineTask: (title: string) => void; onDeleteTask?: (taskId: string) => void; onUpdateTask?: (taskId: string, data: Record<string, any>) => void; onReorderTasks?: (items: { id: string; order: number }[]) => void }) {
+function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks }: { user: UserDto; tasks: TaskDto[]; expanded: boolean; onToggle: () => void; onCreateInlineTask?: (title: string) => void; onDeleteTask?: (taskId: string) => void; onUpdateTask?: (taskId: string, data: Record<string, any>) => void; onReorderTasks?: (items: { id: string; order: number }[]) => void }) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
@@ -118,7 +118,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
   const handleSubmit = () => {
     const trimmed = newTitle.trim();
     if (!trimmed) { setIsAdding(false); return; }
-    onCreateInlineTask(trimmed);
+    onCreateInlineTask?.(trimmed);
     setNewTitle('');
   };
 
@@ -129,13 +129,15 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
           <div className="flex items-center gap-1.5">
             <span className="mr-0.5">{expanded ? '\u25BC' : '\u25B6'}</span>
             {user.name}
-            <button
-              onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}
-              className="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 text-sm leading-none ml-0.5"
-              title="Thêm task"
-            >
-              +
-            </button>
+            {onCreateInlineTask && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}
+                className="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 text-sm leading-none ml-0.5"
+                title="Thêm task"
+              >
+                +
+              </button>
+            )}
           </div>
         </td>
       </tr>
@@ -146,7 +148,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
               key={task.id}
               className={`hover:bg-blue-50 group/task cursor-grab active:cursor-grabbing ${dragOverTaskId === task.id ? 'border-t-2 border-blue-400' : ''}`}
               style={{ height: ROW_H, maxHeight: ROW_H, overflow: 'hidden' }}
-              draggable
+              draggable={!!onReorderTasks}
               onDragStart={(e) => {
                 e.dataTransfer.setData('text/taskId', task.id);
                 e.dataTransfer.setData('text/sourceWeek', String(task.week));
@@ -199,18 +201,20 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
                     <option value="IN_PROGRESS">In Progress</option>
                     <option value="DONE">Done</option>
                   </select>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDeleteTask?.(task.id); }}
-                    className="opacity-0 group-hover/task:opacity-100 text-red-400 hover:text-red-600 text-xs"
-                    title="Xóa task"
-                  >
-                    ✕
-                  </button>
+                  {onDeleteTask && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+                      className="opacity-0 group-hover/task:opacity-100 text-red-400 hover:text-red-600 text-xs"
+                      title="Xóa task"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
           ))}
-          {isAdding ? (
+          {onCreateInlineTask && (isAdding ? (
             <tr className="bg-blue-50/50" style={{ height: ROW_H }}>
               <td className="px-3 py-0 pl-12" colSpan={5}>
                 <input
@@ -233,7 +237,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
                 + Thêm task
               </td>
             </tr>
-          )}
+          ))}
         </>
       )}
     </>

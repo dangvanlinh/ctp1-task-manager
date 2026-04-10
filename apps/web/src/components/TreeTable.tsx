@@ -10,8 +10,8 @@ interface Props {
   onToggleWeek: (week: number) => void;
   onToggleMember: (key: string) => void;
   onCreateInlineTask?: (title: string, userId: string, week: number) => void;
-  onAddWeek: () => void;
-  onRemoveWeek: (week: number) => void;
+  onAddWeek?: () => void;
+  onRemoveWeek?: (week: number) => void;
   onDeleteTask?: (taskId: string) => void;
   onUpdateTask?: (taskId: string, data: Record<string, any>) => void;
   onReorderTasks?: (items: { id: string; order: number }[]) => void;
@@ -47,22 +47,24 @@ export default function TreeTable({ grouped, activeWeeks, expandedWeeks, expande
                 onDeleteTask={onDeleteTask}
                 onUpdateTask={onUpdateTask}
                 onReorderTasks={onReorderTasks}
-                canRemove={!weeksWithTasks.has(week)}
-                onRemoveWeek={() => onRemoveWeek(week)}
+                canRemove={!weeksWithTasks.has(week) && !!onRemoveWeek}
+                onRemoveWeek={onRemoveWeek ? () => onRemoveWeek(week) : undefined}
               />
             );
           })}
           {/* Add week row */}
-          <tr style={{ height: 32 }}>
-            <td colSpan={5} className="px-4 py-0">
-              <button
-                onClick={onAddWeek}
-                className="text-sm text-blue-500 hover:text-blue-700 font-medium"
-              >
-                + Thêm tuần
-              </button>
-            </td>
-          </tr>
+          {onAddWeek && (
+            <tr style={{ height: 32 }}>
+              <td colSpan={5} className="px-4 py-0">
+                <button
+                  onClick={onAddWeek}
+                  className="text-sm text-blue-500 hover:text-blue-700 font-medium"
+                >
+                  + Thêm tuần
+                </button>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

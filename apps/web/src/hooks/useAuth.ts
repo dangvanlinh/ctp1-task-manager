@@ -9,14 +9,15 @@ function parseJwt(token: string) {
 
 export function useLogin() {
   return useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) => login(email, password),
+    mutationFn: ({ name, password }: { name: string; password: string }) => login(name, password),
     onSuccess: (data) => {
       const payload = parseJwt(data.accessToken);
       setAuth(data.accessToken, {
         id: payload.sub,
         email: payload.email,
-        name: payload.email.split('@')[0],
+        name: payload.name || payload.email.split('@')[0],
         role: payload.role,
+        position: payload.position || 'DEV',
         createdAt: '',
       });
     },
@@ -34,6 +35,7 @@ export function useRegister() {
         email: payload.email,
         name: payload.email.split('@')[0],
         role: payload.role,
+        position: payload.position || 'DEV',
         createdAt: '',
       });
     },

@@ -16,14 +16,15 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   useEffect(() => {
     if (!token && !attempted.current && import.meta.env.DEV) {
       attempted.current = true;
-      login('pm@ctp1.vn', '123456')
+      login('PM', '123456')
         .then((data) => {
           const payload = parseJwt(data.accessToken);
           setAuth(data.accessToken, {
             id: payload.sub,
             email: payload.email,
-            name: payload.email.split('@')[0],
+            name: payload.name || 'PM',
             role: payload.role,
+            position: payload.position || 'DEV',
             createdAt: '',
           });
         })

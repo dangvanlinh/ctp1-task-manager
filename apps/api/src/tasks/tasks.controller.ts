@@ -29,6 +29,8 @@ export class TasksController {
   }
 
   @Patch('reorder')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN', 'PM')
   reorder(@Body() body: { items: { id: string; order: number }[] }) {
     return this.tasksService.reorder(body.items);
   }

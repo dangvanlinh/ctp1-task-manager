@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 const STATUS_COLORS: Record<string, string> = {
   TODO: '#9CA3AF',
@@ -25,9 +25,22 @@ export default function GanttBar({ taskId, title, status, startDate, endDate, da
   const dragStartX = useRef(0);
   const origStart = useRef(startDate);
   const origEnd = useRef(endDate);
+  const [dragStart, setDragStart] = useState(startDate);
+  const [dragEnd, setDragEnd] = useState(endDate);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const left = diffDays(timelineStart, startDate) * dayWidth;
-  const width = Math.max((diffDays(startDate, endDate) + 1) * dayWidth, dayWidth);
+  // Sync props when not dragging
+  useEffect(() => {
+    if (!isDragging) {
+      setDragStart(startDate);
+      setDragEnd(endDate);
+    }
+  }, [startDate, endDate, isDragging]);
+
+  const displayStart = isDragging ? dragStart : startDate;
+  const displayEnd = isDragging ? dragEnd : endDate;
+  const left = diffDays(timelineStart, displayStart) * dayWidth;
+  const width = Math.max((diffDays(displayStart, displayEnd) + 1) * dayWidth, dayWidth);
 
   const handleMouseDown = (type: 'move' | 'left' | 'right') => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -35,11 +48,14 @@ export default function GanttBar({ taskId, title, status, startDate, endDate, da
     dragStartX.current = e.clientX;
     origStart.current = startDate;
     origEnd.current = endDate;
+    setIsDragging(true);
+
+    let latestStart = startDate;
+    let latestEnd = endDate;
 
     const handleMouseMove = (ev: MouseEvent) => {
       const dx = ev.clientX - dragStartX.current;
       const daysDelta = Math.round(dx / dayWidth);
-      if (daysDelta === 0) return;
 
       let newStart = origStart.current;
       let newEnd = origEnd.current;
@@ -55,12 +71,20 @@ export default function GanttBar({ taskId, title, status, startDate, endDate, da
         if (newEnd <= origStart.current) return;
       }
 
-      onDateChange(taskId, newStart, newEnd);
+      latestStart = newStart;
+      latestEnd = newEnd;
+      setDragStart(newStart);
+      setDragEnd(newEnd);
     };
 
     const handleMouseUp = () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+      setIsDragging(false);
+      // Only call API if dates actually changed
+      if (latestStart.getTime() !== startDate.getTime() || latestEnd.getTime() !== endDate.getTime()) {
+        onDateChange(taskId, latestStart, latestEnd);
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);

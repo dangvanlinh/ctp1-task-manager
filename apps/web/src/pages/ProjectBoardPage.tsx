@@ -12,6 +12,7 @@ import { useBuilds, useCreateBuild, useDeleteBuild, useUpdateBuild, useAddMilest
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useReorderTasks } from '../hooks/useTasks';
 import { fetchUsers } from '../api/users';
 import type { TaskDto, UserDto } from '@ctp1/shared';
+import { useAuthStore } from '../stores/authStore';
 
 const DAY_WIDTH = 40;
 
@@ -60,6 +61,8 @@ function groupTasksByWeekAndMember(
 
 export default function ProjectBoardPage() {
   const { projectId } = useParams<{ projectId: string }>();
+  const { user: currentUser } = useAuthStore();
+  const canEdit = currentUser?.role === 'ADMIN' || currentUser?.role === 'PM';
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -193,7 +196,7 @@ export default function ProjectBoardPage() {
     <div className="p-6">
       <div className="flex items-center justify-between">
         <MonthWeekSelector month={month} year={year} onChangeMonth={(m, y) => { setMonth(m); setYear(y); }} />
-        <button onClick={handleAddTaskGeneral} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">+ Thêm Task</button>
+        {canEdit && <button onClick={handleAddTaskGeneral} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">+ Thêm Task</button>}
       </div>
       <div className="mt-4">
         <WeeklyEventTimeline
@@ -311,12 +314,20 @@ export default function ProjectBoardPage() {
             weeksWithTasks={weeksWithTasks}
             onToggleWeek={toggleWeek}
             onToggleMember={toggleMember}
-            onCreateInlineTask={handleCreateInlineTask}
-            onAddWeek={addWeek}
-            onRemoveWeek={removeWeek}
-            onUpdateTask={(taskId, data) => updateTask.mutate({ id: taskId, ...data })}
-            onReorderTasks={(items) => reorderTasks.mutate(items)}
-            onDeleteTask={(taskId) => {
+            onCreateInlineTask={canEdit ? handleCreateInlineTask : undefined}
+            onAddWeek={canEdit ? addWeek : undefined}
+            onRemoveWeek={canEdit ? removeWeek : undefined}
+            onUpdateTask={(taskId, data) => {
+              // MEMBER can only update status of own tasks
+              if (!canEdit) {
+                const task = tasks.find((t) => t.id === taskId);
+                if (!task || task.assigneeId !== currentUser?.id) return;
+                if (Object.keys(data).some((k) => k !== 'status')) return;
+              }
+              updateTask.mutate({ id: taskId, ...data });
+            }}
+            onReorderTasks={canEdit ? (items) => reorderTasks.mutate(items) : undefined}
+            onDeleteTask={canEdit ? (taskId) => {
               const task = tasks.find((t) => t.id === taskId);
               if (task?.buildId) {
                 // Unassign user from build
@@ -327,11 +338,11 @@ export default function ProjectBoardPage() {
                 }
               }
               deleteTask.mutate(taskId);
-            }}
+            } : undefined}
           />
         </div>
         <div className="flex-1 overflow-auto">
-          <GanttChart grouped={grouped} activeWeeks={activeWeeksWithTasks} month={month} year={year} expandedWeeks={expandedWeeks} expandedMembers={expandedMembers} onDateChange={handleDateChange} />
+          <GanttChart grouped={grouped} activeWeeks={activeWeeksWithTasks} month={month} year={year} expandedWeeks={expandedWeeks} expandedMembers={expandedMembers} onDateChange={canEdit ? handleDateChange : () => {}} />
         </div>
       </div>
       {showTaskForm && (

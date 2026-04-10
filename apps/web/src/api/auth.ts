@@ -5,10 +5,10 @@ interface AuthResponse {
   refreshToken: string;
 }
 
-export function login(email: string, password: string) {
+export function login(name: string, password: string) {
   return apiFetch<AuthResponse>('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ name, password }),
   });
 }
 
