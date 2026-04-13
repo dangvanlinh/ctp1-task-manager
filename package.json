@@ -6,7 +6,7 @@
     "dev:web": "pnpm --filter web dev",
     "dev": "pnpm run dev:api & pnpm run dev:web",
     "build": "pnpm -r build",
-    "vercel-build": "cd apps/api && npx prisma generate && npx nest build && cd ../.. && pnpm --filter web build"
+    "vercel-build": "cd apps/api && npx prisma generate && npx nest build && cd ../.. && pnpm --filter web build && cp -r apps/web/dist/* public/"
   },
   "devDependencies": {
     "typescript": "^5.7.0"
