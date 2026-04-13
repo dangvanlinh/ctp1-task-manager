@@ -5,13 +5,14 @@
   "framework": null,
   "functions": {
     "api/[...path].js": {
-      "includeFiles": "apps/api/dist/**,apps/api/node_modules/.prisma/**,node_modules/.prisma/**",
+      "includeFiles": "apps/api/dist/**,node_modules/.prisma/**",
       "memory": 512,
       "maxDuration": 10
     }
   },
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api).*)", "destination": "/index.html" }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/[...path]" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
