@@ -4,14 +4,14 @@
   "outputDirectory": "apps/web/dist",
   "framework": null,
   "functions": {
-    "api/index.js": {
+    "api/[...path].js": {
       "includeFiles": "apps/api/dist/**,apps/api/node_modules/.prisma/**,node_modules/.prisma/**",
       "memory": 512,
       "maxDuration": 10
     }
   },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ]
 }
