@@ -8,9 +8,11 @@ import { BuildsModule } from './builds/builds.module';
 import { TasksModule } from './tasks/tasks.module';
 import { NotificationsModule } from './notifications/notifications.module';
 
+const isServerless = !!process.env.VERCEL;
+
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
+    ...(isServerless ? [] : [ScheduleModule.forRoot()]),
     PrismaModule,
     AuthModule,
     UsersModule,

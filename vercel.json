@@ -1,9 +1,17 @@
 {
-  "buildCommand": "pnpm --filter web build",
+  "version": 2,
+  "buildCommand": "pnpm install && cd apps/api && npx prisma generate && npx nest build && cd ../.. && pnpm --filter web build",
   "outputDirectory": "apps/web/dist",
-  "installCommand": "pnpm install",
-  "framework": "vite",
+  "framework": null,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "apps/api/dist/**,apps/api/node_modules/.prisma/**,node_modules/.prisma/**",
+      "memory": 512,
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/((?!api).*)", "destination": "/index.html" }
   ]
 }
