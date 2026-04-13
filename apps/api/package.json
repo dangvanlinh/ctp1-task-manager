@@ -3,48 +3,30 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build",
-    "start": "node dist/main",
-    "test": "jest",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@ctp1/shared": "workspace:*",
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/jwt": "^11.0.0",
-    "@nestjs/passport": "^11.0.0",
-    "@nestjs/platform-express": "^11.0.0",
-    "@nestjs/schedule": "^6.1.1",
-    "@prisma/client": "^6.0.0",
-    "@types/bcryptjs": "^3.0.0",
-    "@vendia/serverless-express": "^4.12.6",
-    "bcrypt": "^5.1.1",
+    "@hono/node-server": "^1.13.0",
+    "@hono/zod-validator": "^0.4.0",
+    "@prisma/client": "6.19.3",
     "bcryptjs": "^3.0.3",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.14.1",
-    "passport": "^0.7.0",
-    "passport-jwt": "^4.0.1",
-    "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.8.0"
+    "hono": "^4.6.0",
+    "jsonwebtoken": "^9.0.0",
+    "zod": "^3.23.0"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.0",
-    "@nestjs/schematics": "^11.0.0",
-    "@nestjs/testing": "^11.0.0",
-    "@types/bcrypt": "^5.0.2",
-    "@types/express": "^5.0.0",
-    "@types/jest": "^29.5.0",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/jsonwebtoken": "^9.0.0",
     "@types/node": "^22.0.0",
-    "@types/passport-jwt": "^4.0.1",
-    "jest": "^29.7.0",
     "prisma": "^6.0.0",
-    "ts-jest": "^29.2.0",
-    "ts-node": "^10.9.0",
+    "tsup": "^8.3.0",
+    "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }
 }

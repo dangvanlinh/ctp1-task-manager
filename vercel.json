@@ -2,19 +2,13 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": "apps/api/dist/**,node_modules/**",
-      "memory": 512,
-      "maxDuration": 15
+      "includeFiles": "apps/api/dist/**,node_modules/.prisma/**,node_modules/@prisma/**",
+      "memory": 256,
+      "maxDuration": 10
     }
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
-  ],
-  "crons": [
-    {
-      "path": "/api/warmup",
-      "schedule": "*/5 * * * *"
-    }
   ]
 }
