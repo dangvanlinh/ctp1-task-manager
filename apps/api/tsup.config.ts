@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     app: 'src/app.ts',
     index: 'src/index.ts',
+    vercel: 'src/vercel.ts',
   },
   format: ['cjs'],
   target: 'node20',
