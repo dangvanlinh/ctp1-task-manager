@@ -4,6 +4,8 @@ import { WeekRow } from './TreeRow';
 interface Props {
   grouped: Map<number, Map<string, { user: UserDto; tasks: TaskDto[] }>>;
   activeWeeks: number[];
+  month: number;
+  year: number;
   expandedWeeks: Set<number>;
   expandedMembers: Set<string>;
   weeksWithTasks: Set<number>;
@@ -17,7 +19,7 @@ interface Props {
   onReorderTasks?: (items: { id: string; order: number }[]) => void;
 }
 
-export default function TreeTable({ grouped, activeWeeks, expandedWeeks, expandedMembers, weeksWithTasks, onToggleWeek, onToggleMember, onCreateInlineTask, onAddWeek, onRemoveWeek, onDeleteTask, onUpdateTask, onReorderTasks }: Props) {
+export default function TreeTable({ grouped, activeWeeks, month, year, expandedWeeks, expandedMembers, weeksWithTasks, onToggleWeek, onToggleMember, onCreateInlineTask, onAddWeek, onRemoveWeek, onDeleteTask, onUpdateTask, onReorderTasks }: Props) {
   return (
     <div className="overflow-auto text-xs">
       <table className="w-full text-left">
@@ -38,6 +40,8 @@ export default function TreeTable({ grouped, activeWeeks, expandedWeeks, expande
               <WeekRow
                 key={week}
                 week={week}
+                month={month}
+                year={year}
                 members={members}
                 expanded={expandedWeeks.has(week)}
                 expandedMembers={expandedMembers}

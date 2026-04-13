@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { TaskDto, UserDto } from '@ctp1/shared';
+import { getWeekRange } from '../utils/weekUtils';
 
 const STATUS_COLORS: Record<string, string> = {
   TODO: 'bg-gray-200 text-gray-700',
@@ -21,6 +22,8 @@ const ROW_H = 32;
 
 interface WeekRowProps {
   week: number;
+  month: number;
+  year: number;
   members: Map<string, { user: UserDto; tasks: TaskDto[] }>;
   expanded: boolean;
   expandedMembers: Set<string>;
@@ -34,7 +37,8 @@ interface WeekRowProps {
   onRemoveWeek?: () => void;
 }
 
-export function WeekRow({ week, members, expanded, expandedMembers, onToggleWeek, onToggleMember, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks, canRemove, onRemoveWeek }: WeekRowProps) {
+export function WeekRow({ week, month, year, members, expanded, expandedMembers, onToggleWeek, onToggleMember, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks, canRemove, onRemoveWeek }: WeekRowProps) {
+  const weekRange = getWeekRange(week, month, year);
   const [dragOver, setDragOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -69,7 +73,7 @@ export function WeekRow({ week, members, expanded, expandedMembers, onToggleWeek
           <div className="flex items-center justify-between">
             <span>
               <span className="mr-1.5">{expanded ? '\u25BC' : '\u25B6'}</span>
-              Tuần {week}
+              Tuần {week} <span className="text-gray-400 font-normal text-[10px]">({weekRange.startDay}-{weekRange.endDay})</span>
             </span>
             {canRemove && (
               <button

@@ -1,18 +1,22 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { TaskDto, UserDto, BuildDto } from '@ctp1/shared';
+import { getWeeksInMonth } from '../utils/weekUtils';
 
 interface Props {
   task?: TaskDto;
   users: UserDto[];
   builds: BuildDto[];
   projectId: string;
+  month: number;
+  year: number;
   defaultAssigneeId?: string;
   defaultWeek?: number;
   onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
-export default function TaskForm({ task, users, builds, projectId, defaultAssigneeId, defaultWeek, onSubmit, onCancel }: Props) {
+export default function TaskForm({ task, users, builds, projectId, month, year, defaultAssigneeId, defaultWeek, onSubmit, onCancel }: Props) {
+  const weeks = useMemo(() => getWeeksInMonth(month, year), [month, year]);
   const [title, setTitle] = useState(task?.title ?? '');
   const [description, setDescription] = useState(task?.description ?? '');
   const [priority, setPriority] = useState(task?.priority ?? 'MEDIUM');
@@ -66,10 +70,9 @@ export default function TaskForm({ task, users, builds, projectId, defaultAssign
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tuần</label>
               <select value={week} onChange={(e) => setWeek(+e.target.value)} className="w-full border rounded px-3 py-2">
-                <option value={1}>Tuần 1</option>
-                <option value={2}>Tuần 2</option>
-                <option value={3}>Tuần 3</option>
-                <option value={4}>Tuần 4</option>
+                {weeks.map((w) => (
+                  <option key={w.week} value={w.week}>Tuần {w.week} (ngày {w.startDay}-{w.endDay})</option>
+                ))}
               </select>
             </div>
             <div>

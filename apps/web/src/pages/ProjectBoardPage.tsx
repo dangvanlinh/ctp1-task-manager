@@ -13,6 +13,7 @@ import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useReorderTasks 
 import { fetchUsers } from '../api/users';
 import type { TaskDto, UserDto } from '@ctp1/shared';
 import { useAuthStore } from '../stores/authStore';
+import { getWeekOfMonth, getWeekRange, getWeekCount } from '../utils/weekUtils';
 
 const DAY_WIDTH = 40;
 
@@ -209,11 +210,9 @@ export default function ProjectBoardPage() {
   };
 
   const handleCreateInlineTask = (title: string, userId: string, week: number) => {
-    const startDay = (week - 1) * 7 + 1;
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const clampedStart = Math.min(startDay, daysInMonth);
-    const startDate = new Date(year, month - 1, clampedStart);
-    const endDate = new Date(year, month - 1, clampedStart);
+    const range = getWeekRange(week, month, year);
+    const startDate = new Date(year, month - 1, range.startDay);
+    const endDate = new Date(year, month - 1, range.startDay);
     createTask.mutate({
       title,
       assigneeId: userId,
@@ -265,7 +264,7 @@ export default function ProjectBoardPage() {
               updateBuild.mutate({ id: buildId, assigneeIds: [...currentIds, userId] });
             }
             // 2. Auto-create task for this user in the corresponding week
-            const week = Math.ceil(startDay / 7) || 1;
+            const week = getWeekOfMonth(startDay, month, year);
             const startDate = new Date(year, month - 1, startDay);
             const endDate = new Date(year, month - 1, endDay);
             createTask.mutate({
@@ -303,7 +302,7 @@ export default function ProjectBoardPage() {
             updateBuild.mutate({ id: buildId, assigneeIds: currentIds.filter((id) => id !== userId) });
           }}
           onAssignWeek={(userId, week, buildLabel, buildStart, buildEnd) => {
-            const actualWeek = Math.ceil(buildStart / 7) || 1;
+            const actualWeek = getWeekOfMonth(buildStart, month, year);
             const startDate = new Date(year, month - 1, buildStart);
             const endDate = new Date(year, month - 1, buildEnd);
             createTask.mutate({
@@ -368,6 +367,8 @@ export default function ProjectBoardPage() {
           <TreeTable
             grouped={grouped}
             activeWeeks={activeWeeksWithTasks}
+            month={month}
+            year={year}
             expandedWeeks={expandedWeeks}
             expandedMembers={expandedMembers}
             weeksWithTasks={weeksWithTasks}
@@ -409,6 +410,8 @@ export default function ProjectBoardPage() {
           users={users}
           builds={builds}
           projectId={projectId!}
+          month={month}
+          year={year}
           defaultAssigneeId={taskFormDefaults.assigneeId}
           defaultWeek={taskFormDefaults.week}
           onSubmit={(data) => { createTask.mutate(data, { onSuccess: () => setShowTaskForm(false) }); }}

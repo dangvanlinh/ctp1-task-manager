@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import EventBar from './EventBar';
 import BuildTimeline from './BuildTimeline';
 import type { BuildDto, UserDto } from '@ctp1/shared';
+import { getWeekCount } from '../utils/weekUtils';
 
 interface EventVariant {
   id: string;
@@ -112,7 +113,7 @@ function generateDefaultEventWeeks(month: number, year: number): EventWeek[] {
     // Each month starts independently from day 1
     let cursor = 1;
 
-    const weekCount = Math.min(5, Math.ceil(daysInMonth / 7));
+    const weekCount = getWeekCount(month, year);
     for (let w = 1; w <= weekCount; w++) {
       if (cursor > daysInMonth) break;
 
