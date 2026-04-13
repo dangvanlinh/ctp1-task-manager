@@ -55,10 +55,8 @@ module.exports = async function handler(req, res) {
       });
     });
   } catch (err) {
+    console.error('Bootstrap failed:', err);
     res.statusCode = 500;
-    res.end(JSON.stringify({
-      error: 'Bootstrap failed',
-      message: err.message,
-    }));
+    res.end(JSON.stringify({ statusCode: 500, message: 'Internal Server Error' }));
   }
 };
