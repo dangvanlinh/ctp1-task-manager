@@ -8,11 +8,12 @@ interface Props {
   height: number;
   top: number;
   dayWidth: number;
+  isPast?: boolean;
   onResize: (newStartDay: number, newEndDay: number) => void;
   onLabelChange: (newLabel: string) => void;
 }
 
-export default function EventBar({ left, width, color, label, height, top, dayWidth, onResize, onLabelChange }: Props) {
+export default function EventBar({ left, width, color, label, height, top, dayWidth, isPast, onResize, onLabelChange }: Props) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(label);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +84,7 @@ export default function EventBar({ left, width, color, label, height, top, dayWi
 
   return (
     <div
-      className={`absolute ${color} rounded-sm opacity-80 flex items-center justify-center cursor-default select-none`}
+      className={`absolute ${isPast ? 'bg-gray-300' : color} rounded-sm ${isPast ? 'opacity-50' : 'opacity-80'} flex items-center justify-center cursor-default select-none`}
       style={{ left, width, height, top }}
       onDoubleClick={handleDoubleClick}
     >

@@ -112,7 +112,7 @@ export default function GanttChart({ grouped, activeWeeks, month, year, expanded
               })}
             </div>
             {row.type === 'task' && row.task && (
-              <GanttBar taskId={row.task.id} title={row.task.title} status={row.task.status} startDate={new Date(row.task.startDate)} endDate={new Date(row.task.endDate)} dayWidth={DAY_WIDTH} timelineStart={timelineStart} onDateChange={onDateChange} />
+              <GanttBar taskId={row.task.id} title={row.task.title} status={row.task.status} startDate={new Date(row.task.startDate)} endDate={new Date(row.task.endDate)} dayWidth={DAY_WIDTH} timelineStart={timelineStart} isPast={new Date(row.task.endDate) < new Date(new Date().setHours(0,0,0,0))} onDateChange={onDateChange} />
             )}
           </div>
         ))}

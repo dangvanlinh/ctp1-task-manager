@@ -6,6 +6,12 @@ const STATUS_COLORS: Record<string, string> = {
   DONE: '#22C55E',
 };
 
+const STATUS_COLORS_PAST: Record<string, string> = {
+  TODO: '#D1D5DB',
+  IN_PROGRESS: '#93C5FD',
+  DONE: '#86EFAC',
+};
+
 interface Props {
   taskId: string;
   title: string;
@@ -14,6 +20,7 @@ interface Props {
   endDate: Date;
   dayWidth: number;
   timelineStart: Date;
+  isPast?: boolean;
   onDateChange: (taskId: string, startDate: Date, endDate: Date) => void;
 }
 
@@ -21,7 +28,7 @@ function diffDays(a: Date, b: Date) {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-export default function GanttBar({ taskId, title, status, startDate, endDate, dayWidth, timelineStart, onDateChange }: Props) {
+export default function GanttBar({ taskId, title, status, startDate, endDate, dayWidth, timelineStart, isPast, onDateChange }: Props) {
   const dragStartX = useRef(0);
   const origStart = useRef(startDate);
   const origEnd = useRef(endDate);
@@ -97,7 +104,8 @@ export default function GanttBar({ taskId, title, status, startDate, endDate, da
       style={{
         left: `${left}px`,
         width: `${width}px`,
-        backgroundColor: STATUS_COLORS[status] || '#9CA3AF',
+        backgroundColor: isPast ? (STATUS_COLORS_PAST[status] || '#D1D5DB') : (STATUS_COLORS[status] || '#9CA3AF'),
+        opacity: isPast ? 0.7 : 1,
         top: '50%',
         transform: 'translateY(-50%)',
       }}

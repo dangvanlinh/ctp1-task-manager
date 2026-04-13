@@ -23,6 +23,8 @@ interface Props {
   onDeleteMilestone: (milestoneId: string, buildId: string) => void;
   onAssignBuild?: (buildId: string, userId: string, buildName: string, startDay: number, endDay: number) => void;
   onUnassignBuild?: (buildId: string, userId: string) => void;
+  onPhaseResize?: (buildId: string, startDay: number, endDay: number) => void;
+  syncKey?: number;
 }
 
 function getDaysInMonth(month: number, year: number) {
@@ -79,7 +81,7 @@ function savePhases(buildId: string, phases: DevPhase[]) {
   } catch { /* ignore */ }
 }
 
-export default function BuildTimeline({ builds, users, month, year, dayWidth, totalDays, onCreateBuild, onDeleteBuild, onUpdateBuild, onAssignBuild, onUnassignBuild }: Props) {
+export default function BuildTimeline({ builds, users, month, year, dayWidth, totalDays, onCreateBuild, onDeleteBuild, onUpdateBuild, onAssignBuild, onUnassignBuild, onPhaseResize, syncKey }: Props) {
   const [isAddingBuild, setIsAddingBuild] = useState(false);
   const [newBuildName, setNewBuildName] = useState('');
   const [editingBuildName, setEditingBuildName] = useState<string | null>(null);
@@ -143,6 +145,19 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
       return changed ? next : prev;
     });
   }, [builds, todayDay]);
+
+  // Reload phases from localStorage when external sync happens (task dates changed)
+  useEffect(() => {
+    if (syncKey && syncKey > 0) {
+      setPhasesMap((prev) => {
+        const next: Record<string, DevPhase[]> = {};
+        for (const b of builds) {
+          next[b.id] = loadPhases(b.id, todayDay);
+        }
+        return next;
+      });
+    }
+  }, [syncKey, builds, todayDay]);
 
   const updatePhases = useCallback((buildId: string, updater: (prev: DevPhase[]) => DevPhase[]) => {
     setPhasesMap((prev) => {
@@ -212,9 +227,16 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
   };
 
   const updatePhaseDay = (buildId: string, phaseId: string, field: 'startDay' | 'endDay', value: number) => {
-    updatePhases(buildId, (prev) =>
-      prev.map((p) => p.id === phaseId ? { ...p, [field]: value } : p)
-    );
+    updatePhases(buildId, (prev) => {
+      const next = prev.map((p) => p.id === phaseId ? { ...p, [field]: value } : p);
+      // Notify parent with overall build range for task sync
+      if (onPhaseResize) {
+        const startDay = Math.min(...next.map((p) => p.startDay));
+        const endDay = Math.max(...next.map((p) => p.endDay));
+        onPhaseResize(buildId, startDay, endDay);
+      }
+      return next;
+    });
   };
 
   const updatePhaseLabel = (buildId: string, phaseId: string, label: string) => {
@@ -385,7 +407,8 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
             {phases.map((phase, pi) => {
               const left = (phase.startDay - 1) * dayWidth;
               const width = (phase.endDay - phase.startDay + 1) * dayWidth;
-              const color = phase.type === 'live' ? LIVE_COLOR : PHASE_COLORS[pi % PHASE_COLORS.length];
+              const isPastPhase = isCurrentMonth ? phase.endDay < todayDay : year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1);
+              const color = isPastPhase ? 'bg-gray-300' : (phase.type === 'live' ? LIVE_COLOR : PHASE_COLORS[pi % PHASE_COLORS.length]);
               const isEditing = editingLabel === phase.id;
 
               if (width <= 0) return null;
@@ -393,7 +416,7 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
               return (
                 <div
                   key={phase.id}
-                  className={`absolute ${color} opacity-80 flex items-center justify-center hover:opacity-100 transition-opacity group/phase`}
+                  className={`absolute ${color} ${isPastPhase ? 'opacity-50' : 'opacity-80 hover:opacity-100'} flex items-center justify-center transition-opacity group/phase`}
                   style={{ left, width, height: ROW_HEIGHT - 6, top: 3, borderRadius: 3 }}
                   onDoubleClick={() => {
                     setEditingLabel(phase.id);

@@ -172,13 +172,16 @@ interface TimelineProps {
   onDeleteMilestone?: (milestoneId: string, buildId: string) => void;
   onAssignBuild?: (buildId: string, userId: string, buildName: string, startDay: number, endDay: number) => void;
   onUnassignBuild?: (buildId: string, userId: string) => void;
+  onPhaseResize?: (buildId: string, startDay: number, endDay: number) => void;
+  onWeekBuildResize?: (week: number, buildLabel: string, startDay: number, endDay: number) => void;
+  syncKey?: number;
   onAssignWeek?: (userId: string, week: number, buildLabel: string, buildStart: number, buildEnd: number) => void;
   onUnassignWeek?: (userId: string, week: number, buildLabel: string) => void;
   leftPanel?: React.ReactNode;
   rightPanel?: React.ReactNode;
 }
 
-export default function WeeklyEventTimeline({ month, year, dayWidth, builds = [], users = [], onCreateBuild, onDeleteBuild, onUpdateBuild, onAddMilestone, onDeleteMilestone, onAssignBuild, onUnassignBuild, onAssignWeek, onUnassignWeek, leftPanel, rightPanel }: TimelineProps) {
+export default function WeeklyEventTimeline({ month, year, dayWidth, builds = [], users = [], onCreateBuild, onDeleteBuild, onUpdateBuild, onAddMilestone, onDeleteMilestone, onAssignBuild, onUnassignBuild, onPhaseResize, onWeekBuildResize, syncKey, onAssignWeek, onUnassignWeek, leftPanel, rightPanel }: TimelineProps) {
   const [events, setEvents] = useState<EventConfig[]>(() => {
     try {
       const raw = localStorage.getItem('eventConfigs');
@@ -225,6 +228,13 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
     setPrevKey(key);
   }
 
+  // Reload from localStorage when external sync happens (task dates changed)
+  useEffect(() => {
+    if (syncKey && syncKey > 0) {
+      setEventWeeksRaw(loadEventWeeks(month, year));
+    }
+  }, [syncKey, month, year]);
+
   const renameVariant = useCallback((eventId: string, variantIdx: 0 | 1, newName: string) => {
     setEvents((prev) => {
       const next = prev.map((evt) => {
@@ -269,6 +279,13 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
         const nextB = buildByWeek.get(sorted[i + 1])!;
         const start = nextB.start - 7;
         buildByWeek.set(sorted[i], { start, end: start + buildDuration });
+      }
+
+      // Notify parent about each affected week's new build range
+      if (onWeekBuildResize) {
+        buildByWeek.forEach(({ start, end }, w) => {
+          onWeekBuildResize(w, `T${w} Build`, start, end);
+        });
       }
 
       return prev.map((ew) => {
@@ -412,6 +429,7 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
                               height={ROW_HEIGHT - 4}
                               top={2}
                               dayWidth={dayWidth}
+                              isPast={isCurrentMonth ? buildEnd < todayDay : year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1)}
                               onResize={(newStart, newEnd) => updateBuild(w, newStart, newEnd)}
                               onLabelChange={() => {}}
                             />
@@ -486,6 +504,7 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
                             height={ROW_HEIGHT - 4}
                             top={2}
                             dayWidth={dayWidth}
+                            isPast={isCurrentMonth ? ew.liveEnd < todayDay : year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1)}
                             onResize={(newStart, newEnd) => updateEventWeek(w, evt.id, { liveStart: newStart, liveEnd: newEnd })}
                             onLabelChange={(newLabel) => updateEventWeek(w, evt.id, { label: newLabel })}
                           />
@@ -516,6 +535,8 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
               onDeleteMilestone={onDeleteMilestone ?? (() => {})}
               onAssignBuild={onAssignBuild}
               onUnassignBuild={onUnassignBuild}
+              onPhaseResize={onPhaseResize}
+              syncKey={syncKey}
             />
           )}
           </div>

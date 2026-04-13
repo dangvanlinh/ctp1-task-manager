@@ -72,6 +72,7 @@ export default function ProjectBoardPage() {
   const [searchText, setSearchText] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
+  const [timelineSyncKey, setTimelineSyncKey] = useState(0);
 
   const { data: builds = [] } = useBuilds(projectId!, month, year);
   const { data: tasks = [] } = useTasks(projectId!, month, year);
@@ -91,7 +92,7 @@ export default function ProjectBoardPage() {
   const activeWeeksWithTasks = useMemo(() => {
     const taskWeeks = new Set(tasks.map((t) => t.week));
     const merged = new Set([...activeWeeks, ...Array.from(taskWeeks)]);
-    return Array.from(merged).sort((a, b) => a - b);
+    return Array.from(merged).sort((a, b) => b - a);
   }, [tasks, activeWeeks]);
 
   const filteredTasks = useMemo(() => {
@@ -166,6 +167,45 @@ export default function ProjectBoardPage() {
 
   const handleDateChange = (taskId: string, startDate: Date, endDate: Date) => {
     updateTask.mutate({ id: taskId, startDate: startDate.toISOString(), endDate: endDate.toISOString() });
+    const task = tasks.find((t) => t.id === taskId);
+    const startDay = startDate.getDate();
+    const endDay = endDate.getDate();
+    let synced = false;
+    // Sync task → Dev Timeline (build phases in localStorage)
+    if (task?.buildId) {
+      const phasesKey = `devPhases-${task.buildId}`;
+      try {
+        const raw = localStorage.getItem(phasesKey);
+        if (raw) {
+          const phases = JSON.parse(raw);
+          if (phases.length > 0) {
+            phases[0].startDay = startDay;
+            phases[phases.length - 1].endDay = endDay;
+            localStorage.setItem(phasesKey, JSON.stringify(phases));
+            synced = true;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    // Sync task → Config Event (week build bars in localStorage)
+    if (task?.title?.match(/^T\d+ Build$/)) {
+      const ewKey = `eventWeeks-${year}-${month}`;
+      try {
+        const raw = localStorage.getItem(ewKey);
+        if (raw) {
+          const eventWeeks = JSON.parse(raw);
+          const weekNum = parseInt(task.title.match(/^T(\d+) Build$/)?.[1] ?? '0');
+          if (weekNum > 0) {
+            const updated = eventWeeks.map((ew: any) =>
+              ew.week === weekNum ? { ...ew, buildStart: startDay, buildEnd: endDay } : ew
+            );
+            localStorage.setItem(ewKey, JSON.stringify(updated));
+            synced = true;
+          }
+        }
+      } catch { /* ignore */ }
+    }
+    if (synced) setTimelineSyncKey((k) => k + 1);
   };
 
   const handleCreateInlineTask = (title: string, userId: string, week: number) => {
@@ -204,6 +244,7 @@ export default function ProjectBoardPage() {
           year={year}
           dayWidth={DAY_WIDTH}
           builds={builds}
+          syncKey={timelineSyncKey}
           users={users}
           onCreateBuild={(name) => {
             const today = new Date();
@@ -237,6 +278,24 @@ export default function ProjectBoardPage() {
               endDate: endDate.toISOString(),
               priority: 'MEDIUM',
             });
+          }}
+          onPhaseResize={(buildId, startDay, endDay) => {
+            // Sync build phase time changes to tasks with matching buildId
+            const matchingTasks = tasks.filter((t) => t.buildId === buildId);
+            for (const task of matchingTasks) {
+              const newStart = new Date(year, month - 1, startDay);
+              const newEnd = new Date(year, month - 1, endDay);
+              updateTask.mutate({ id: task.id, startDate: newStart.toISOString(), endDate: newEnd.toISOString() });
+            }
+          }}
+          onWeekBuildResize={(week, buildLabel, startDay, endDay) => {
+            // Sync week build bar time changes to tasks with matching title
+            const matchingTasks = tasks.filter((t) => t.title === buildLabel);
+            for (const task of matchingTasks) {
+              const newStart = new Date(year, month - 1, startDay);
+              const newEnd = new Date(year, month - 1, endDay);
+              updateTask.mutate({ id: task.id, startDate: newStart.toISOString(), endDate: newEnd.toISOString() });
+            }
           }}
           onUnassignBuild={(buildId, userId) => {
             const build = builds.find((b) => b.id === buildId);
