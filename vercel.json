@@ -1,7 +1,14 @@
 {
   "version": 2,
+  "functions": {
+    "api/index.js": {
+      "includeFiles": "apps/api/dist/**,node_modules/.prisma/**",
+      "memory": 512,
+      "maxDuration": 10
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/api/:path*", "destination": "/api" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ]
 }
