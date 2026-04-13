@@ -9,12 +9,13 @@
       }
     },
     {
-      "src": "apps/web/dist/**",
-      "use": "@vercel/static"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "apps/web/dist"
+      }
     }
   ],
-  "buildCommand": "pnpm install && cd apps/api && npx prisma generate && npx nest build && cd ../.. && pnpm --filter web build",
-  "outputDirectory": "apps/web/dist",
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/[...path]" },
     { "handle": "filesystem" },
