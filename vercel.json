@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/index.js": {
-      "includeFiles": "apps/api/dist/**,node_modules/.prisma/**",
+      "includeFiles": "apps/api/dist/**,node_modules/**",
       "memory": 512,
       "maxDuration": 10
     }

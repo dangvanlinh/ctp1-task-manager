@@ -1,4 +1,14 @@
-// Vercel Serverless entry point - delegates to built NestJS app
+// Fix module resolution - point to root node_modules
+const path = require('path');
+const rootDir = path.join(__dirname, '..');
+require('module').Module._nodeModulePaths = ((orig) => (from) => {
+  const paths = orig(from);
+  paths.push(path.join(rootDir, 'node_modules'));
+  // Also add nested pnpm node_modules
+  paths.push(path.join(rootDir, 'apps', 'api', 'node_modules'));
+  return paths;
+})(require('module').Module._nodeModulePaths);
+
 let app;
 let bootstrapError;
 
@@ -27,7 +37,7 @@ module.exports = async function handler(req, res) {
     const nestApp = await bootstrap();
     const instance = nestApp.getHttpAdapter().getInstance();
 
-    // Recover original path from x-invoke-path header (set by Vercel rewrite)
+    // Recover original path
     const originalPath = req.headers['x-invoke-path'] || req.url;
 
     // Strip /api prefix so NestJS routes match
@@ -49,7 +59,6 @@ module.exports = async function handler(req, res) {
     res.end(JSON.stringify({
       error: 'Bootstrap failed',
       message: err.message,
-      stack: err.stack
     }));
   }
 };
