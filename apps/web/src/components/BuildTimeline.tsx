@@ -24,6 +24,7 @@ interface Props {
   onAssignBuild?: (buildId: string, userId: string, buildName: string, startDay: number, endDay: number) => void;
   onUnassignBuild?: (buildId: string, userId: string) => void;
   onPhaseResize?: (buildId: string, startDay: number, endDay: number) => void;
+  onReorderBuild?: (buildId: string, direction: 'up' | 'down') => void;
   syncKey?: number;
 }
 
@@ -81,7 +82,7 @@ function savePhases(buildId: string, phases: DevPhase[]) {
   } catch { /* ignore */ }
 }
 
-export default function BuildTimeline({ builds, users, month, year, dayWidth, totalDays, onCreateBuild, onDeleteBuild, onUpdateBuild, onAssignBuild, onUnassignBuild, onPhaseResize, syncKey }: Props) {
+export default function BuildTimeline({ builds, users, month, year, dayWidth, totalDays, onCreateBuild, onDeleteBuild, onUpdateBuild, onAssignBuild, onUnassignBuild, onPhaseResize, onReorderBuild, syncKey }: Props) {
   const [isAddingBuild, setIsAddingBuild] = useState(false);
   const [newBuildName, setNewBuildName] = useState('');
   const [editingBuildName, setEditingBuildName] = useState<string | null>(null);
@@ -361,6 +362,27 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
               >
                 ✕
               </button>
+              {/* Reorder arrows */}
+              {onReorderBuild && (
+                <>
+                  <button
+                    onClick={() => onReorderBuild(build.id, 'up')}
+                    disabled={builds.indexOf(build) === 0}
+                    className="opacity-0 group-hover/row:opacity-100 text-gray-400 hover:text-gray-700 disabled:text-gray-200 disabled:hover:text-gray-200 text-xs ml-1"
+                    title="Di chuyển lên"
+                  >
+                    ▲
+                  </button>
+                  <button
+                    onClick={() => onReorderBuild(build.id, 'down')}
+                    disabled={builds.indexOf(build) === builds.length - 1}
+                    className="opacity-0 group-hover/row:opacity-100 text-gray-400 hover:text-gray-700 disabled:text-gray-200 disabled:hover:text-gray-200 text-xs"
+                    title="Di chuyển xuống"
+                  >
+                    ▼
+                  </button>
+                </>
+              )}
               {/* Assignee popup */}
               {assigneePopup === build.id && (
                 <>

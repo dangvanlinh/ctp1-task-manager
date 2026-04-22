@@ -17,6 +17,7 @@ export function createTask(data: {
   buildId?: string;
   assigneeId: string;
   projectId: string;
+  order?: number;
 }) {
   return apiFetch<TaskDto>('/tasks', { method: 'POST', body: JSON.stringify(data) });
 }

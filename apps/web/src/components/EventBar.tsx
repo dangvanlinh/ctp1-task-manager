@@ -84,7 +84,7 @@ export default function EventBar({ left, width, color, label, height, top, dayWi
 
   return (
     <div
-      className={`absolute ${isPast ? 'bg-gray-300' : color} rounded-sm ${isPast ? 'opacity-50' : 'opacity-80'} flex items-center justify-center cursor-default select-none`}
+      className={`absolute ${isPast ? 'bg-gray-400' : color} rounded-sm ${isPast ? 'opacity-80' : 'opacity-80'} flex items-center justify-center cursor-default select-none`}
       style={{ left, width, height, top }}
       onDoubleClick={handleDoubleClick}
     >
@@ -98,11 +98,11 @@ export default function EventBar({ left, width, color, label, height, top, dayWi
             if (e.key === 'Escape') { setEditValue(label); setEditing(false); }
           }}
           onBlur={handleFinishEdit}
-          className="w-full h-full bg-transparent text-[9px] text-white font-medium text-center outline-none px-0.5"
+          className="w-full h-full bg-transparent text-[11px] text-white font-medium text-center outline-none px-0.5"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <span className="text-[9px] text-white font-medium truncate px-1 pointer-events-none">{label}</span>
+        <span className="text-[11px] text-white font-medium truncate px-1 pointer-events-none">{label}</span>
       )}
       {/* Left resize handle */}
       <div

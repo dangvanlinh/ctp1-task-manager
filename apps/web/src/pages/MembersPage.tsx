@@ -52,6 +52,7 @@ export default function MembersPage() {
     if (pos === 'DESIGNER') return 'bg-purple-100 text-purple-700';
     if (pos === 'DEV') return 'bg-green-100 text-green-700';
     if (pos === 'ARTIST') return 'bg-orange-100 text-orange-700';
+    if (pos === 'BD') return 'bg-pink-100 text-pink-700';
     return 'bg-gray-100 text-gray-600';
   };
 
@@ -103,6 +104,7 @@ export default function MembersPage() {
               <option value="DESIGNER">Designer</option>
               <option value="DEV">Dev</option>
               <option value="ARTIST">Artist</option>
+              <option value="BD">BD</option>
             </select>
             <button
               onClick={handleCreate}

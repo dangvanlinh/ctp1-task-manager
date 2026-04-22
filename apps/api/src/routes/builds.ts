@@ -35,9 +35,26 @@ builds.get('/', async (c) => {
       milestones: { orderBy: { date: 'asc' } },
       assignees: { include: { user: { select: { id: true, name: true, email: true, position: true } } } },
     },
-    orderBy: { createdAt: 'asc' },
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
   });
   return c.json(list);
+});
+
+// Reorder builds (must be before /:id routes)
+const reorderSchema = z.object({
+  orderedIds: z.array(z.string().uuid()),
+});
+
+builds.patch('/reorder', rolesGuard('ADMIN', 'PM'), zValidator('json', reorderSchema), async (c) => {
+  const { orderedIds } = c.req.valid('json');
+
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      prisma.build.update({ where: { id }, data: { order: index } })
+    )
+  );
+
+  return c.json({ success: true });
 });
 
 builds.post('/', rolesGuard('ADMIN', 'PM'), zValidator('json', createBuildSchema), async (c) => {
@@ -45,9 +62,18 @@ builds.post('/', rolesGuard('ADMIN', 'PM'), zValidator('json', createBuildSchema
   const data = c.req.valid('json');
   const { assigneeIds, milestones, ...buildData } = data;
 
+  // Auto-assign order: next after max
+  const maxOrderBuild = await prisma.build.findFirst({
+    where: { projectId: data.projectId, month: data.month, year: data.year },
+    orderBy: { order: 'desc' },
+    select: { order: true },
+  });
+  const nextOrder = (maxOrderBuild?.order ?? -1) + 1;
+
   const build = await prisma.build.create({
     data: {
       ...buildData,
+      order: nextOrder,
       startDate: buildData.startDate ? new Date(buildData.startDate) : null,
       liveDate: buildData.liveDate ? new Date(buildData.liveDate) : null,
       endDate: buildData.endDate ? new Date(buildData.endDate) : null,

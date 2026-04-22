@@ -33,6 +33,10 @@ export function addMilestone(buildId: string, data: { name: string; date: string
   return apiFetch<BuildDto>(`/builds/${buildId}/milestones`, { method: 'POST', body: JSON.stringify(data) });
 }
 
+export function reorderBuilds(orderedIds: string[]) {
+  return apiFetch<{ success: boolean }>('/builds/reorder', { method: 'PATCH', body: JSON.stringify({ orderedIds }) });
+}
+
 export function deleteMilestone(milestoneId: string) {
   return apiFetch<BuildDto>(`/builds/milestones/${milestoneId}`, { method: 'DELETE' });
 }

@@ -17,9 +17,10 @@ interface Props {
   onDeleteTask?: (taskId: string) => void;
   onUpdateTask?: (taskId: string, data: Record<string, any>) => void;
   onReorderTasks?: (items: { id: string; order: number }[]) => void;
+  onRemoveMember?: (userId: string) => void;
 }
 
-export default function TreeTable({ grouped, activeWeeks, month, year, expandedWeeks, expandedMembers, weeksWithTasks, onToggleWeek, onToggleMember, onCreateInlineTask, onAddWeek, onRemoveWeek, onDeleteTask, onUpdateTask, onReorderTasks }: Props) {
+export default function TreeTable({ grouped, activeWeeks, month, year, expandedWeeks, expandedMembers, weeksWithTasks, onToggleWeek, onToggleMember, onCreateInlineTask, onAddWeek, onRemoveWeek, onDeleteTask, onUpdateTask, onReorderTasks, onRemoveMember }: Props) {
   return (
     <div className="overflow-auto text-xs">
       <table className="w-full text-left">
@@ -51,6 +52,7 @@ export default function TreeTable({ grouped, activeWeeks, month, year, expandedW
                 onDeleteTask={onDeleteTask}
                 onUpdateTask={onUpdateTask}
                 onReorderTasks={onReorderTasks}
+                onRemoveMember={onRemoveMember}
                 canRemove={!weeksWithTasks.has(week) && !!onRemoveWeek}
                 onRemoveWeek={onRemoveWeek ? () => onRemoveWeek(week) : undefined}
               />

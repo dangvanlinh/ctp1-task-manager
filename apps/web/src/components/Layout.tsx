@@ -1,11 +1,19 @@
 import { useAuthStore, clearAuth } from '../stores/authStore';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useMatch } from 'react-router-dom';
+import { useProjects } from '../hooks/useProjects';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
   const isPmOrAdmin = user?.role === 'PM' || user?.role === 'ADMIN';
+
+  const projectMatch = useMatch('/projects/:projectId');
+  const { data: projects } = useProjects();
+  const currentProject = projectMatch
+    ? projects?.find((p) => p.id === projectMatch.params.projectId)
+    : null;
+  const title = currentProject?.name ?? 'CTP1 Task Manager';
 
   const navItem = (path: string, label: string) => (
     <button
@@ -20,7 +28,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-bold text-gray-800 cursor-pointer" onClick={() => navigate('/')}>CTP1 Task Manager</h1>
+          <h1 className="text-lg font-bold text-gray-800 cursor-pointer" onClick={() => navigate('/')}>{title}</h1>
           <nav className="flex items-center gap-1">
             {navItem('/', 'Projects')}
             {isPmOrAdmin && navItem('/members', 'Members')}

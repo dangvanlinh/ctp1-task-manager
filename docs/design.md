@@ -60,4 +60,27 @@ Trang Project Board (`ProjectBoardPage.tsx`) gồm 3 phần chính từ trên xu
 
 ## Thứ tự hiển thị member trong mỗi tuần
 
-- Sort theo position: **Designer → Dev → Artist**
+- Sort theo position: **Designer → Dev → Artist → BD**
+
+## Changelog
+
+### 2026-04-22
+- **Bugfix — localStorage leak giữa các project**: các key `eventWeeks-{year}-{month}`, `eventConfigs`, `weekAssignees-{year}-{month}` trước đây dùng chung cho mọi project → sửa task ở project A làm thay đổi project B. Đã scope lại theo `projectId`:
+  - `eventWeeks-{projectId}-{year}-{month}`
+  - `eventConfigs-{projectId}`
+  - `weekAssignees-{projectId}-{year}-{month}`
+  - `WeeklyEventTimeline` nhận thêm prop `projectId` (required).
+  - `ProjectBoardPage.handleDateChange` cũng dùng key scoped khi sync "T{n} Build" → event weeks.
+  - **Migration**: khi load key mới không thấy data → fallback đọc key legacy (`eventWeeks-{year}-{month}`, `eventConfigs`, `weekAssignees-{year}-{month}`) → copy sang key mới. Legacy key giữ nguyên (non-destructive). Data cũ sẽ "bám" vào project đầu tiên user mở — hiện tại prod chỉ có 1 project nên OK. Nếu sau này có nhiều project, user chỉ cần vào đúng project trước, các project sau sẽ bắt đầu với state trống bình thường.
+
+### 2026-04-21
+- **EventBar**: tăng font text trong block timeline từ `9px` → `11px` (cả span hiển thị và input khi edit).
+- **EventBar (isPast)**: block đã qua đổi màu từ `bg-gray-300 opacity-50` → `bg-gray-400 opacity-80` cho rõ chữ hơn.
+- **WeeklyEventTimeline**: bỏ auto-generate event weeks mặc định (CHĐ/Tinh Thạch/SKB/...). `generateDefaultEventWeeks()` giờ return `[]` — user tự thêm event khi cần. Xoá các helper không còn dùng (`getThursdayBefore`, `getDefaultLiveDays`, import `getWeekCount`).
+- **MembersPage**: thêm position **BD** (Business Designer) vào cả form tạo mới và form sửa. Badge BD màu pink (`bg-pink-100 text-pink-700`).
+- **Layout header**: thay title "CTP1 Task Manager" bằng **tên project đang view** khi ở route `/projects/:projectId`. Dùng `useMatch` + `useProjects` để resolve. Click vào title vẫn về trang Projects list.
+- **ProjectBoardPage — Remove member from project**:
+  - Thêm nút `✕` đỏ cạnh tên member trong TreeTable (hiện khi hover, chỉ PM/ADMIN).
+  - Click → confirm → xoá tất cả task của member đó trong tháng đang view + ẩn member khỏi project.
+  - Dismissed list lưu **localStorage** theo key `dismissedMembers-{projectId}` → persist khi reload, không ảnh hưởng project khác.
+  - Implementation: props `onRemoveMember` xuyên qua `TreeTable` → `WeekRow` → `MemberRow`.

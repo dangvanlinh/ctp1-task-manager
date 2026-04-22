@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchBuilds, createBuild, updateBuild, deleteBuild, addMilestone, deleteMilestone, type CreateBuildPayload } from '../api/builds';
+import { fetchBuilds, createBuild, updateBuild, deleteBuild, addMilestone, deleteMilestone, reorderBuilds, type CreateBuildPayload } from '../api/builds';
 
 export function useBuilds(projectId: string, month: number, year: number) {
   return useQuery({
@@ -41,6 +41,14 @@ export function useAddMilestone() {
   return useMutation({
     mutationFn: ({ buildId, data }: { buildId: string; data: { name: string; date: string; type: string } }) =>
       addMilestone(buildId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['builds'] }),
+  });
+}
+
+export function useReorderBuilds() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: reorderBuilds,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['builds'] }),
   });
 }

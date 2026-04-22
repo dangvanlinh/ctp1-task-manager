@@ -28,6 +28,7 @@ export default function BuildForm({ users, projectId, month, year, onSubmit, onC
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [milestones, setMilestones] = useState<MilestoneInput[]>([
     { name: 'Build 1', date: '', type: 'BUILD' },
+    { name: 'Live', date: '', type: 'LIVE' },
   ]);
   const [endDate, setEndDate] = useState('');
 

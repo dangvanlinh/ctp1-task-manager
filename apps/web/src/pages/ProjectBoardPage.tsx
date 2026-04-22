@@ -8,7 +8,7 @@ import GanttChart from '../components/GanttChart';
 import TaskForm from '../components/TaskForm';
 import BacklogBox from '../components/BacklogBox';
 import DocLinksBox from '../components/DocLinksBox';
-import { useBuilds, useCreateBuild, useDeleteBuild, useUpdateBuild, useAddMilestone, useDeleteMilestone } from '../hooks/useBuilds';
+import { useBuilds, useCreateBuild, useDeleteBuild, useUpdateBuild, useAddMilestone, useDeleteMilestone, useReorderBuilds } from '../hooks/useBuilds';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useReorderTasks } from '../hooks/useTasks';
 import { fetchUsers } from '../api/users';
 import type { TaskDto, UserDto } from '@ctp1/shared';
@@ -78,7 +78,34 @@ export default function ProjectBoardPage() {
   const { data: builds = [] } = useBuilds(projectId!, month, year);
   const { data: tasks = [] } = useTasks(projectId!, month, year);
   const { data: allUsers = [] } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
-  const users = useMemo(() => allUsers.filter((u) => u.role !== 'ADMIN'), [allUsers]);
+
+  // Members dismissed from this project (persisted per-project in localStorage)
+  const dismissedKey = `dismissedMembers-${projectId}`;
+  const [dismissedMembers, setDismissedMembers] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(dismissedKey);
+      if (raw) return new Set<string>(JSON.parse(raw));
+    } catch { /* ignore */ }
+    return new Set();
+  });
+  const users = useMemo(
+    () => allUsers.filter((u) => u.role !== 'ADMIN' && !dismissedMembers.has(u.id)),
+    [allUsers, dismissedMembers],
+  );
+
+  const handleRemoveMember = (userId: string) => {
+    const u = allUsers.find((x) => x.id === userId);
+    if (!confirm(`Xoá ${u?.name ?? 'thành viên'} khỏi project? Tất cả task của họ trong tháng này sẽ bị xoá.`)) return;
+    // Delete all tasks of this user in currently loaded month
+    tasks.filter((t) => t.assigneeId === userId).forEach((t) => deleteTask.mutate(t.id));
+    // Persist dismissal
+    setDismissedMembers((prev) => {
+      const next = new Set(prev);
+      next.add(userId);
+      localStorage.setItem(dismissedKey, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
   const createTask = useCreateTask();
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -88,6 +115,7 @@ export default function ProjectBoardPage() {
   const updateBuild = useUpdateBuild();
   const addMilestone = useAddMilestone();
   const deleteMilestone = useDeleteMilestone();
+  const reorderBuilds = useReorderBuilds();
 
   // Merge task weeks into activeWeeks without useEffect loop
   const activeWeeksWithTasks = useMemo(() => {
@@ -190,7 +218,7 @@ export default function ProjectBoardPage() {
     }
     // Sync task → Config Event (week build bars in localStorage)
     if (task?.title?.match(/^T\d+ Build$/)) {
-      const ewKey = `eventWeeks-${year}-${month}`;
+      const ewKey = `eventWeeks-${projectId}-${year}-${month}`;
       try {
         const raw = localStorage.getItem(ewKey);
         if (raw) {
@@ -213,6 +241,9 @@ export default function ProjectBoardPage() {
     const range = getWeekRange(week, month, year);
     const startDate = new Date(year, month - 1, range.startDay);
     const endDate = new Date(year, month - 1, range.startDay);
+    // Set order to end of this user's task list in this week
+    const userTasksInWeek = tasks.filter((t) => t.assigneeId === userId && t.week === week);
+    const maxOrder = userTasksInWeek.length > 0 ? Math.max(...userTasksInWeek.map((t) => t.order)) : -1;
     createTask.mutate({
       title,
       assigneeId: userId,
@@ -221,6 +252,7 @@ export default function ProjectBoardPage() {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       priority: 'MEDIUM',
+      order: maxOrder + 1,
     });
   };
 
@@ -239,6 +271,7 @@ export default function ProjectBoardPage() {
       </div>
       <div className="mt-4">
         <WeeklyEventTimeline
+          projectId={projectId!}
           month={month}
           year={year}
           dayWidth={DAY_WIDTH}
@@ -253,6 +286,15 @@ export default function ProjectBoardPage() {
             createBuild.mutate({ name, projectId: projectId!, month, year, startDate: startDate.toISOString(), liveDate: liveDate.toISOString(), endDate: endDate.toISOString() });
           }}
           onDeleteBuild={(id) => deleteBuild.mutate(id)}
+          onReorderBuild={(buildId, direction) => {
+            const idx = builds.findIndex((b) => b.id === buildId);
+            if (idx < 0) return;
+            const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+            if (swapIdx < 0 || swapIdx >= builds.length) return;
+            const newOrder = builds.map((b) => b.id);
+            [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
+            reorderBuilds.mutate(newOrder);
+          }}
           onAddMilestone={(buildId, data) => addMilestone.mutate({ buildId, data })}
           onDeleteMilestone={(milestoneId) => deleteMilestone.mutate(milestoneId)}
           onUpdateBuild={(id, data) => updateBuild.mutate({ id, ...data })}
@@ -387,6 +429,7 @@ export default function ProjectBoardPage() {
               updateTask.mutate({ id: taskId, ...data });
             }}
             onReorderTasks={canEdit ? (items) => reorderTasks.mutate(items) : undefined}
+            onRemoveMember={canEdit ? handleRemoveMember : undefined}
             onDeleteTask={canEdit ? (taskId) => {
               const task = tasks.find((t) => t.id === taskId);
               if (task?.buildId) {

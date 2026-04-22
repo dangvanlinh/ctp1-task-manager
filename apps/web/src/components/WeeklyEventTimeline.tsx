@@ -2,7 +2,6 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import EventBar from './EventBar';
 import BuildTimeline from './BuildTimeline';
 import type { BuildDto, UserDto } from '@ctp1/shared';
-import { getWeekCount } from '../utils/weekUtils';
 
 interface EventVariant {
   id: string;
@@ -79,88 +78,48 @@ function getGapDays(eventId: string): number {
   return eventId === 'dautruong' ? 1 : 0;
 }
 
-// Default live duration per event type
-function getDefaultLiveDays(eventId: string): number {
-  if (eventId === 'dautruong') return 6;
-  return 7; // nv, trangsuc
-}
-
 // Get variant for a week (odd=0, even=1)
 function getVariantIndex(week: number): 0 | 1 {
   return week % 2 === 1 ? 0 : 1;
 }
 
-// Find the nearest Thursday before a given day (searching backwards)
-function getThursdayBefore(day: number, month: number, year: number): number {
-  for (let d = day - 1; d >= 1; d--) {
-    if (new Date(year, month - 1, d).getDay() === 4) return d; // Thursday = 4
-  }
-  // If no Thursday found in this month, return day 1 as fallback
-  return 1;
-}
-
-
-
 // Generate default weekly event data for a month
-function generateDefaultEventWeeks(month: number, year: number): EventWeek[] {
-  const weeks: EventWeek[] = [];
-  const events = DEFAULT_EVENTS;
-  const daysInMonth = getDaysInMonth(month, year);
-
-  for (const evt of events) {
-    const gap = getGapDays(evt.id);
-    const liveDays = getDefaultLiveDays(evt.id);
-    // Each month starts independently from day 1
-    let cursor = 1;
-
-    const weekCount = getWeekCount(month, year);
-    for (let w = 1; w <= weekCount; w++) {
-      if (cursor > daysInMonth) break;
-
-      const vi = getVariantIndex(w);
-      const variant = evt.variants[vi];
-
-      const liveStart = cursor;
-
-      // Build = nearest Thursday before liveStart
-      const buildDay = getThursdayBefore(liveStart, month, year);
-      const liveEnd = liveStart + liveDays - 1; // can extend beyond month
-
-      weeks.push({
-        eventId: evt.id,
-        week: w,
-        buildStart: buildDay,
-        buildEnd: buildDay,
-        liveStart,
-        liveEnd,
-        label: variant.name,
-      });
-
-      cursor = liveEnd + 1 + gap;
-    }
-  }
-  return weeks;
+// Returns empty array — users add events manually instead of pre-populating defaults.
+function generateDefaultEventWeeks(_month: number, _year: number): EventWeek[] {
+  return [];
 }
 
-function getStorageKey(month: number, year: number) {
+function getStorageKey(projectId: string, month: number, year: number) {
+  return `eventWeeks-${projectId}-${year}-${month}`;
+}
+
+// Legacy (pre-scoped) key from before 2026-04-22 — used for one-time migration fallback.
+function getLegacyEventWeeksKey(month: number, year: number) {
   return `eventWeeks-${year}-${month}`;
 }
 
-function loadEventWeeks(month: number, year: number): EventWeek[] {
+function loadEventWeeks(projectId: string, month: number, year: number): EventWeek[] {
   try {
-    const raw = localStorage.getItem(getStorageKey(month, year));
+    const raw = localStorage.getItem(getStorageKey(projectId, month, year));
     if (raw) return JSON.parse(raw);
+    // Migration fallback: read legacy (un-scoped) key and copy into scoped key.
+    const legacy = localStorage.getItem(getLegacyEventWeeksKey(month, year));
+    if (legacy) {
+      localStorage.setItem(getStorageKey(projectId, month, year), legacy);
+      return JSON.parse(legacy);
+    }
   } catch { /* ignore */ }
   return generateDefaultEventWeeks(month, year);
 }
 
-function saveEventWeeks(month: number, year: number, data: EventWeek[]) {
+function saveEventWeeks(projectId: string, month: number, year: number, data: EventWeek[]) {
   try {
-    localStorage.setItem(getStorageKey(month, year), JSON.stringify(data));
+    localStorage.setItem(getStorageKey(projectId, month, year), JSON.stringify(data));
   } catch { /* ignore */ }
 }
 
 interface TimelineProps {
+  projectId: string;
   month: number;
   year: number;
   dayWidth: number;
@@ -174,6 +133,7 @@ interface TimelineProps {
   onAssignBuild?: (buildId: string, userId: string, buildName: string, startDay: number, endDay: number) => void;
   onUnassignBuild?: (buildId: string, userId: string) => void;
   onPhaseResize?: (buildId: string, startDay: number, endDay: number) => void;
+  onReorderBuild?: (buildId: string, direction: 'up' | 'down') => void;
   onWeekBuildResize?: (week: number, buildLabel: string, startDay: number, endDay: number) => void;
   syncKey?: number;
   onAssignWeek?: (userId: string, week: number, buildLabel: string, buildStart: number, buildEnd: number) => void;
@@ -182,24 +142,40 @@ interface TimelineProps {
   rightPanel?: React.ReactNode;
 }
 
-export default function WeeklyEventTimeline({ month, year, dayWidth, builds = [], users = [], onCreateBuild, onDeleteBuild, onUpdateBuild, onAddMilestone, onDeleteMilestone, onAssignBuild, onUnassignBuild, onPhaseResize, onWeekBuildResize, syncKey, onAssignWeek, onUnassignWeek, leftPanel, rightPanel }: TimelineProps) {
+export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, builds = [], users = [], onCreateBuild, onDeleteBuild, onUpdateBuild, onAddMilestone, onDeleteMilestone, onAssignBuild, onUnassignBuild, onPhaseResize, onReorderBuild, onWeekBuildResize, syncKey, onAssignWeek, onUnassignWeek, leftPanel, rightPanel }: TimelineProps) {
+  const eventConfigsKey = `eventConfigs-${projectId}`;
   const [events, setEvents] = useState<EventConfig[]>(() => {
     try {
-      const raw = localStorage.getItem('eventConfigs');
+      const raw = localStorage.getItem(eventConfigsKey);
       if (raw) return JSON.parse(raw);
+      // Migration fallback from legacy un-scoped key
+      const legacy = localStorage.getItem('eventConfigs');
+      if (legacy) {
+        localStorage.setItem(eventConfigsKey, legacy);
+        return JSON.parse(legacy);
+      }
     } catch { /* ignore */ }
     return DEFAULT_EVENTS;
   });
-  const [eventWeeks, setEventWeeksRaw] = useState<EventWeek[]>(() => loadEventWeeks(month, year));
-  const [prevKey, setPrevKey] = useState(`${month}-${year}`);
+  const [eventWeeks, setEventWeeksRaw] = useState<EventWeek[]>(() => loadEventWeeks(projectId, month, year));
+  const [prevKey, setPrevKey] = useState(`${projectId}-${month}-${year}`);
   const [collapsed, setCollapsed] = useState(false);
   const [weekAssigneePopup, setWeekAssigneePopup] = useState<number | null>(null);
   const [weekPopupPos, setWeekPopupPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
 
   // Week assignees stored in localStorage
-  const weekAssignKey = `weekAssignees-${year}-${month}`;
+  const weekAssignKey = `weekAssignees-${projectId}-${year}-${month}`;
   const [weekAssignees, setWeekAssignees] = useState<Record<number, string[]>>(() => {
-    try { const raw = localStorage.getItem(weekAssignKey); if (raw) return JSON.parse(raw); } catch {}
+    try {
+      const raw = localStorage.getItem(weekAssignKey);
+      if (raw) return JSON.parse(raw);
+      // Migration fallback from legacy un-scoped key
+      const legacy = localStorage.getItem(`weekAssignees-${year}-${month}`);
+      if (legacy) {
+        localStorage.setItem(weekAssignKey, legacy);
+        return JSON.parse(legacy);
+      }
+    } catch {}
     return {};
   });
   const updateWeekAssignees = useCallback((week: number, userIds: string[]) => {
@@ -216,15 +192,15 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
   const setEventWeeks: typeof setEventWeeksRaw = useCallback((updater) => {
     setEventWeeksRaw((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      saveEventWeeks(month, year, next);
+      saveEventWeeks(projectId, month, year, next);
       return next;
     });
-  }, [month, year]);
+  }, [projectId, month, year]);
 
-  // Reset when month/year changes
-  const key = `${month}-${year}`;
+  // Reset when project/month/year changes
+  const key = `${projectId}-${month}-${year}`;
   if (key !== prevKey) {
-    const loaded = loadEventWeeks(month, year);
+    const loaded = loadEventWeeks(projectId, month, year);
     setEventWeeksRaw(loaded);
     setPrevKey(key);
   }
@@ -232,9 +208,9 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
   // Reload from localStorage when external sync happens (task dates changed)
   useEffect(() => {
     if (syncKey && syncKey > 0) {
-      setEventWeeksRaw(loadEventWeeks(month, year));
+      setEventWeeksRaw(loadEventWeeks(projectId, month, year));
     }
-  }, [syncKey, month, year]);
+  }, [syncKey, projectId, month, year]);
 
   const renameVariant = useCallback((eventId: string, variantIdx: 0 | 1, newName: string) => {
     setEvents((prev) => {
@@ -244,7 +220,7 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
         variants[variantIdx] = { ...variants[variantIdx], name: newName };
         return { ...evt, variants };
       });
-      localStorage.setItem('eventConfigs', JSON.stringify(next));
+      localStorage.setItem(eventConfigsKey, JSON.stringify(next));
       return next;
     });
     // Also update all matching bar labels
@@ -256,7 +232,7 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
         return { ...ew, label: newName };
       })
     );
-  }, [setEventWeeks]);
+  }, [setEventWeeks, eventConfigsKey]);
 
   // Shift all builds: they are 7 days apart. Changing one shifts all others.
   const updateBuild = useCallback((weekNum: number, newBuildStart: number, newBuildEnd: number) => {
@@ -537,6 +513,7 @@ export default function WeeklyEventTimeline({ month, year, dayWidth, builds = []
               onAssignBuild={onAssignBuild}
               onUnassignBuild={onUnassignBuild}
               onPhaseResize={onPhaseResize}
+              onReorderBuild={onReorderBuild}
               syncKey={syncKey}
             />
           )}

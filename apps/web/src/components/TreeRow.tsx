@@ -33,11 +33,12 @@ interface WeekRowProps {
   onDeleteTask?: (taskId: string) => void;
   onUpdateTask?: (taskId: string, data: Record<string, any>) => void;
   onReorderTasks?: (items: { id: string; order: number }[]) => void;
+  onRemoveMember?: (userId: string) => void;
   canRemove: boolean;
   onRemoveWeek?: () => void;
 }
 
-export function WeekRow({ week, month, year, members, expanded, expandedMembers, onToggleWeek, onToggleMember, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks, canRemove, onRemoveWeek }: WeekRowProps) {
+export function WeekRow({ week, month, year, members, expanded, expandedMembers, onToggleWeek, onToggleMember, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks, onRemoveMember, canRemove, onRemoveWeek }: WeekRowProps) {
   const weekRange = getWeekRange(week, month, year);
   const [dragOver, setDragOver] = useState(false);
 
@@ -102,6 +103,7 @@ export function WeekRow({ week, month, year, members, expanded, expandedMembers,
               onDeleteTask={onDeleteTask}
               onUpdateTask={onUpdateTask}
               onReorderTasks={onReorderTasks}
+              onRemove={onRemoveMember ? () => onRemoveMember(userId) : undefined}
             />
           );
         })}
@@ -109,7 +111,7 @@ export function WeekRow({ week, month, year, members, expanded, expandedMembers,
   );
 }
 
-function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks }: { user: UserDto; tasks: TaskDto[]; expanded: boolean; onToggle: () => void; onCreateInlineTask?: (title: string) => void; onDeleteTask?: (taskId: string) => void; onUpdateTask?: (taskId: string, data: Record<string, any>) => void; onReorderTasks?: (items: { id: string; order: number }[]) => void }) {
+function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDeleteTask, onUpdateTask, onReorderTasks, onRemove }: { user: UserDto; tasks: TaskDto[]; expanded: boolean; onToggle: () => void; onCreateInlineTask?: (title: string) => void; onDeleteTask?: (taskId: string) => void; onUpdateTask?: (taskId: string, data: Record<string, any>) => void; onReorderTasks?: (items: { id: string; order: number }[]) => void; onRemove?: () => void }) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [dragOverTaskId, setDragOverTaskId] = useState<string | null>(null);
@@ -130,16 +132,27 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
     <>
       <tr className="cursor-pointer hover:bg-gray-50 group" style={{ height: ROW_H }} onClick={onToggle}>
         <td className="px-3 py-0 pl-8 font-medium" colSpan={5}>
-          <div className="flex items-center gap-1.5">
-            <span className="mr-0.5">{expanded ? '\u25BC' : '\u25B6'}</span>
-            {user.name}
-            {onCreateInlineTask && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <span className="mr-0.5">{expanded ? '\u25BC' : '\u25B6'}</span>
+              {user.name}
+              {onCreateInlineTask && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}
+                  className="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 text-sm leading-none ml-0.5"
+                  title="Thêm task"
+                >
+                  +
+                </button>
+              )}
+            </div>
+            {onRemove && (
               <button
-                onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}
-                className="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 text-sm leading-none ml-0.5"
-                title="Thêm task"
+                onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs px-1"
+                title={`Xoá ${user.name} khỏi project (sẽ xoá hết task)`}
               >
-                +
+                ✕
               </button>
             )}
           </div>
