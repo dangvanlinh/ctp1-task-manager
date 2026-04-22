@@ -19,6 +19,7 @@ model User {
   assignedTasks  Task[]          @relation("assignee")
   createdTasks   Task[]          @relation("creator")
   buildAssignees BuildAssignee[]
+  apiTokens      ApiToken[]
 }
 
 model Project {
@@ -28,6 +29,22 @@ model Project {
   createdAt   DateTime @default(now())
   builds      Build[]
   tasks       Task[]
+  apiTokens   ApiToken[]
+}
+
+model ApiToken {
+  id          String    @id @default(uuid())
+  name        String
+  tokenHash   String    @unique
+  tokenPrefix String
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scope       String    @default("read")
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
 }
 
 model Build {

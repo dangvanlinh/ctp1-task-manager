@@ -2,13 +2,13 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { prisma } from '../lib/prisma';
-import { authMiddleware, rolesGuard, JwtUser } from '../middleware/auth';
+import { authMiddleware, rolesGuard, JwtUser, allowApiToken } from '../middleware/auth';
 
 const tasks = new Hono();
 
 tasks.use('*', authMiddleware);
 
-tasks.get('/', async (c) => {
+tasks.get('/', allowApiToken({ projectIdFrom: 'query', key: 'projectId' }), async (c) => {
   const { projectId, month, year, week } = c.req.query();
   const m = parseInt(month);
   const y = parseInt(year);

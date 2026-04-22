@@ -65,6 +65,16 @@ Trang Project Board (`ProjectBoardPage.tsx`) gồm 3 phần chính từ trên xu
 ## Changelog
 
 ### 2026-04-22
+- **Feature — API Tokens cho bot / external agent**:
+  - Model mới `ApiToken` (id, name, tokenHash SHA-256, tokenPrefix, projectId nullable, scope read/write, createdBy, expiresAt, lastUsedAt). Migration `20260422_add_api_tokens`.
+  - Token format: `ctp1_<48 hex>` (256 bit random). Hash SHA-256 lưu DB. Prefix (12 chars đầu) hiển thị trong UI để nhận diện.
+  - Auth middleware nhận cả JWT (user) lẫn API token (header `Authorization: Bearer ctp1_...`). API token detect qua prefix; không có `user` attached → `rolesGuard` tự động block write.
+  - Middleware `allowApiToken({ projectIdFrom, key })` check scope: nếu token có `projectId` cố định → phải trùng với param/query của request, không trùng → 403.
+  - Routes đã bật API token: `GET /tasks`, `GET /builds`, `GET /projects` (projects list filter theo scope).
+  - Route `/api-tokens` (JWT + ADMIN/PM only): list, create, revoke. Create trả full token 1 lần duy nhất.
+  - Frontend: page `/api-tokens` cho PM/ADMIN — tạo/xem/revoke token, có banner "copy ngay" khi tạo, có usage example curl. Nav link "API Tokens" thêm vào Layout.
+  - **Migration**: chạy SQL trong `apps/api/prisma/migrations/20260422_add_api_tokens/migration.sql` trên Neon production trước khi deploy. Redeploy Vercel sau migration để Prisma client refresh schema.
+
 - **Bugfix — localStorage leak giữa các project**: các key `eventWeeks-{year}-{month}`, `eventConfigs`, `weekAssignees-{year}-{month}` trước đây dùng chung cho mọi project → sửa task ở project A làm thay đổi project B. Đã scope lại theo `projectId`:
   - `eventWeeks-{projectId}-{year}-{month}`
   - `eventConfigs-{projectId}`

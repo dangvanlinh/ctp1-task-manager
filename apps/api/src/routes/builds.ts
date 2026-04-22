@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator';
 import { prisma } from '../lib/prisma';
-import { authMiddleware, rolesGuard, JwtUser } from '../middleware/auth';
+import { authMiddleware, rolesGuard, JwtUser, allowApiToken } from '../middleware/auth';
 
 const builds = new Hono();
 
@@ -26,7 +26,7 @@ const createBuildSchema = z.object({
   milestones: z.array(milestoneSchema).optional().default([]),
 });
 
-builds.get('/', async (c) => {
+builds.get('/', allowApiToken({ projectIdFrom: 'query', key: 'projectId' }), async (c) => {
   const { projectId, month, year } = c.req.query();
 
   const list = await prisma.build.findMany({

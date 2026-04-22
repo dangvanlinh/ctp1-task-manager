@@ -32,6 +32,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <nav className="flex items-center gap-1">
             {navItem('/', 'Projects')}
             {isPmOrAdmin && navItem('/members', 'Members')}
+            {isPmOrAdmin && navItem('/api-tokens', 'API Tokens')}
           </nav>
         </div>
         <div className="flex items-center gap-4">

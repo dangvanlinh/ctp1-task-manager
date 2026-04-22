@@ -3,6 +3,7 @@ import LoginPage from './pages/LoginPage';
 import ProjectListPage from './pages/ProjectListPage';
 import ProjectBoardPage from './pages/ProjectBoardPage';
 import MembersPage from './pages/MembersPage';
+import ApiTokensPage from './pages/ApiTokensPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 
@@ -31,6 +32,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Layout><MembersPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/api-tokens"
+        element={
+          <ProtectedRoute>
+            <Layout><ApiTokensPage /></Layout>
           </ProtectedRoute>
         }
       />
