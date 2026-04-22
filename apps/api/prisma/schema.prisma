@@ -30,6 +30,21 @@ model Project {
   builds      Build[]
   tasks       Task[]
   apiTokens   ApiToken[]
+  weeklyEvents WeeklyEventData[]
+}
+
+model WeeklyEventData {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  month     Int
+  year      Int
+  data      Json     @default("[]")
+  configs   Json     @default("[]")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([projectId, month, year])
 }
 
 model ApiToken {

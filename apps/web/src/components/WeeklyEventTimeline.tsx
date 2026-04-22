@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import EventBar from './EventBar';
 import BuildTimeline from './BuildTimeline';
 import type { BuildDto, UserDto } from '@ctp1/shared';
+import { fetchWeeklyEvents, saveWeeklyEvents } from '../api/weeklyEvents';
 
 interface EventVariant {
   id: string;
@@ -188,13 +189,53 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
 
   // No need for document click listener - using backdrop overlay instead
 
-  // Wrapper that also persists to localStorage
+  // Debounced API sync (300ms): keeps DB in sync with local edits without spamming during drag-resize.
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestSnapshot = useRef<{ data: EventWeek[]; configs: EventConfig[] }>({ data: eventWeeks, configs: events });
+  latestSnapshot.current = { data: eventWeeks, configs: events };
+  const scheduleSync = useCallback(() => {
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      const snap = latestSnapshot.current;
+      saveWeeklyEvents({ projectId, month, year, data: snap.data, configs: snap.configs }).catch(() => {});
+    }, 300);
+  }, [projectId, month, year]);
+
+  // Wrapper that also persists to localStorage + triggers DB sync
   const setEventWeeks: typeof setEventWeeksRaw = useCallback((updater) => {
     setEventWeeksRaw((prev) => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
       saveEventWeeks(projectId, month, year, next);
       return next;
     });
+    scheduleSync();
+  }, [projectId, month, year, scheduleSync]);
+
+  // On mount / when project/month/year changes: fetch from DB. If DB has data, overwrite local.
+  // If DB empty but local has data, push local → DB (one-time migration per project/month/year).
+  useEffect(() => {
+    let cancelled = false;
+    fetchWeeklyEvents(projectId, month, year)
+      .then((remote) => {
+        if (cancelled) return;
+        if (remote.data && remote.data.length > 0) {
+          setEventWeeksRaw(remote.data);
+          saveEventWeeks(projectId, month, year, remote.data);
+        } else {
+          // DB empty — migrate local → DB if we have anything
+          const localWeeks = loadEventWeeks(projectId, month, year);
+          if (localWeeks.length > 0) {
+            saveWeeklyEvents({ projectId, month, year, data: localWeeks, configs: events }).catch(() => {});
+          }
+        }
+        if (remote.configs && (remote.configs as any[]).length > 0) {
+          setEvents(remote.configs as any);
+          localStorage.setItem(eventConfigsKey, JSON.stringify(remote.configs));
+        }
+      })
+      .catch(() => { /* offline-tolerant */ });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, month, year]);
 
   // Reset when project/month/year changes
@@ -223,6 +264,7 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
       localStorage.setItem(eventConfigsKey, JSON.stringify(next));
       return next;
     });
+    scheduleSync();
     // Also update all matching bar labels
     setEventWeeks((prev) =>
       prev.map((ew) => {
@@ -232,7 +274,7 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
         return { ...ew, label: newName };
       })
     );
-  }, [setEventWeeks, eventConfigsKey]);
+  }, [setEventWeeks, eventConfigsKey, scheduleSync]);
 
   // Shift all builds: they are 7 days apart. Changing one shifts all others.
   const updateBuild = useCallback((weekNum: number, newBuildStart: number, newBuildEnd: number) => {

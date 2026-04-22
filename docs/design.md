@@ -65,6 +65,18 @@ Trang Project Board (`ProjectBoardPage.tsx`) gồm 3 phần chính từ trên xu
 ## Changelog
 
 ### 2026-04-22
+- **Feature — Weekly events persist vào DB + API endpoint cho bot**:
+  - Trước đây event live bars (CHĐ, Tinh Thạch, SKB...) chỉ lưu trong localStorage → bot không đọc được.
+  - Thêm model `WeeklyEventData { projectId, month, year, data JSONB, configs JSONB }` (`@@unique [projectId, month, year]`). Migration `20260422_add_weekly_events`.
+  - Endpoint `GET /weekly-events?projectId=X&month=Y&year=Z` — format raw (dành cho UI internal).
+  - Endpoint `GET /weekly-events?...&format=simple` — flatten **live bars only** cho bot, shape: `{ id, week, name, category, startDate (YYYY-MM-DD), endDate, color (hex) }`.
+  - Endpoint `PUT /weekly-events` (ADMIN/PM): upsert data + configs.
+  - `allowApiToken` bật trên GET → bot đọc được với `Bearer ctp1_...`.
+  - Frontend `WeeklyEventTimeline`:
+    - On mount: fetch từ DB. Nếu DB có data → overwrite localStorage. Nếu DB rỗng nhưng localStorage có data → push lên DB (one-time migration per project/month/year).
+    - On save (eventWeeks hoặc events config): debounced 300ms PUT lên DB, localStorage vẫn ghi tức thì cho UX mượt.
+    - Fire-and-forget, offline-tolerant.
+
 - **Feature — API Tokens cho bot / external agent**:
   - Model mới `ApiToken` (id, name, tokenHash SHA-256, tokenPrefix, projectId nullable, scope read/write, createdBy, expiresAt, lastUsedAt). Migration `20260422_add_api_tokens`.
   - Token format: `ctp1_<48 hex>` (256 bit random). Hash SHA-256 lưu DB. Prefix (12 chars đầu) hiển thị trong UI để nhận diện.
