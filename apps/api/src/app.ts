@@ -8,6 +8,7 @@ import { builds } from './routes/builds';
 import { notifications } from './routes/notifications';
 import { apiTokens } from './routes/apiTokens';
 import { weeklyEvents } from './routes/weeklyEvents';
+import { monthlyRevenue } from './routes/monthlyRevenue';
 
 const app = new Hono();
 
@@ -23,6 +24,7 @@ app.route('/builds', builds);
 app.route('/notifications', notifications);
 app.route('/api-tokens', apiTokens);
 app.route('/weekly-events', weeklyEvents);
+app.route('/monthly-revenue', monthlyRevenue);
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));

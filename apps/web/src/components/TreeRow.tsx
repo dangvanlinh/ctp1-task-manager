@@ -149,7 +149,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
             {onRemove && (
               <button
                 onClick={(e) => { e.stopPropagation(); onRemove(); }}
-                className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 text-xs px-1"
+                className="text-gray-300 hover:text-red-600 text-xs px-1.5 py-0.5 rounded hover:bg-red-50"
                 title={`Xoá ${user.name} khỏi project (sẽ xoá hết task)`}
               >
                 ✕

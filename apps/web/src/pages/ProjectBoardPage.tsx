@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MonthWeekSelector from '../components/MonthWeekSelector';
 import WeeklyEventTimeline from '../components/WeeklyEventTimeline';
 import TreeTable from '../components/TreeTable';
@@ -11,6 +11,8 @@ import DocLinksBox from '../components/DocLinksBox';
 import { useBuilds, useCreateBuild, useDeleteBuild, useUpdateBuild, useAddMilestone, useDeleteMilestone, useReorderBuilds } from '../hooks/useBuilds';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useReorderTasks } from '../hooks/useTasks';
 import { fetchUsers } from '../api/users';
+import { fetchMonthlyRevenue, saveMonthlyRevenue } from '../api/monthlyRevenue';
+import { useMutation } from '@tanstack/react-query';
 import type { TaskDto, UserDto } from '@ctp1/shared';
 import { useAuthStore } from '../stores/authStore';
 import { getWeekOfMonth, getWeekRange, getWeekCount } from '../utils/weekUtils';
@@ -78,6 +80,22 @@ export default function ProjectBoardPage() {
   const { data: builds = [] } = useBuilds(projectId!, month, year);
   const { data: tasks = [] } = useTasks(projectId!, month, year);
   const { data: allUsers = [] } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
+
+  // Monthly revenue for the whole year (for banner + YTD)
+  const qc = useQueryClient();
+  const { data: monthlyRevenues = [] } = useQuery({
+    queryKey: ['monthlyRevenue', projectId, year],
+    queryFn: () => fetchMonthlyRevenue(projectId!, year),
+    enabled: !!projectId,
+  });
+  const saveRevenueMut = useMutation({
+    mutationFn: saveMonthlyRevenue,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['monthlyRevenue', projectId, year] }),
+  });
+  const handleSaveRevenue = (m: number, amount: number) => {
+    if (!projectId) return;
+    saveRevenueMut.mutate({ projectId, month: m, year, amount });
+  };
 
   // Members dismissed from this project (persisted per-project in localStorage)
   const dismissedKey = `dismissedMembers-${projectId}`;
@@ -266,7 +284,14 @@ export default function ProjectBoardPage() {
   return (
     <div className="p-6">
       <div className="flex items-center justify-between">
-        <MonthWeekSelector month={month} year={year} onChangeMonth={(m, y) => { setMonth(m); setYear(y); }} />
+        <MonthWeekSelector
+          month={month}
+          year={year}
+          onChangeMonth={(m, y) => { setMonth(m); setYear(y); }}
+          revenues={monthlyRevenues}
+          canEdit={canEdit}
+          onSaveRevenue={handleSaveRevenue}
+        />
         {canEdit && <button onClick={handleAddTaskGeneral} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">+ Thêm Task</button>}
       </div>
       <div className="mt-4">

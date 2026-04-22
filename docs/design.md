@@ -65,6 +65,17 @@ Trang Project Board (`ProjectBoardPage.tsx`) gồm 3 phần chính từ trên xu
 ## Changelog
 
 ### 2026-04-22
+- **Feature — Monthly Revenue (VND)**:
+  - Model `MonthlyRevenue { projectId, month, year, amount BIGINT, note }` (`@@unique [projectId, month, year]`). Migration `20260422_add_monthly_revenue`.
+  - API: `GET /monthly-revenue?projectId=X&year=Y[&month=M]`, `PUT /monthly-revenue` (ADMIN/PM upsert). API token được phép đọc.
+  - Amount là BIGINT (VND không decimal), serialize về string khi trả JSON để an toàn.
+  - Utils `formatVnd` (1.2B, 850M, 12.5K, 1T) + `parseVnd` ("5.2B" → 5200000000).
+  - `MonthWeekSelector` hiển thị banner "Doanh thu Thg X/YYYY" trên tab row (click để sửa, nhập số hoặc format rút gọn), và ô "YTD: xx.xB" sticky ở cuối tab row (tổng từ Thg 1 đến tháng hiện tại thực tế; năm quá khứ cộng đủ 12; năm tương lai = 0).
+
+- **UI polish — Remove member button visibility**:
+  - Trước đây nút ✕ xoá member dùng `opacity-0 group-hover:opacity-100` → user không thấy.
+  - Đổi sang luôn visible với `text-gray-300` (dim), `hover:text-red-600 hover:bg-red-50` khi hover.
+
 - **Feature — Weekly events persist vào DB + API endpoint cho bot**:
   - Trước đây event live bars (CHĐ, Tinh Thạch, SKB...) chỉ lưu trong localStorage → bot không đọc được.
   - Thêm model `WeeklyEventData { projectId, month, year, data JSONB, configs JSONB }` (`@@unique [projectId, month, year]`). Migration `20260422_add_weekly_events`.
