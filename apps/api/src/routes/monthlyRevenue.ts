@@ -49,4 +49,31 @@ monthlyRevenue.put('/', rolesGuard('ADMIN', 'PM'), zValidator('json', putSchema)
   return c.json({ ...saved, amount: saved.amount.toString() });
 });
 
+// Yearly KPI — target revenue for the year (single value per project/year)
+monthlyRevenue.get('/kpi', allowApiToken({ projectIdFrom: 'query', key: 'projectId' }), async (c) => {
+  const { projectId, year } = c.req.query();
+  if (!projectId || !year) return c.json({ message: 'projectId and year required' }, 400);
+  const row = await prisma.projectYearlyKpi.findUnique({
+    where: { projectId_year: { projectId, year: parseInt(year) } },
+  });
+  if (!row) return c.json({ projectId, year: parseInt(year), amount: '0' });
+  return c.json({ ...row, amount: row.amount.toString() });
+});
+
+const kpiPutSchema = z.object({
+  projectId: z.string().uuid(),
+  year: z.number().int().min(2020).max(2100),
+  amount: z.union([z.number(), z.string()]).transform((v) => BigInt(v)),
+});
+
+monthlyRevenue.put('/kpi', rolesGuard('ADMIN', 'PM'), zValidator('json', kpiPutSchema), async (c) => {
+  const { projectId, year, amount } = c.req.valid('json');
+  const saved = await prisma.projectYearlyKpi.upsert({
+    where: { projectId_year: { projectId, year } },
+    create: { projectId, year, amount },
+    update: { amount },
+  });
+  return c.json({ ...saved, amount: saved.amount.toString() });
+});
+
 export { monthlyRevenue };

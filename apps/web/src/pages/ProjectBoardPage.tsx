@@ -11,7 +11,7 @@ import DocLinksBox from '../components/DocLinksBox';
 import { useBuilds, useCreateBuild, useDeleteBuild, useUpdateBuild, useAddMilestone, useDeleteMilestone, useReorderBuilds } from '../hooks/useBuilds';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask, useReorderTasks } from '../hooks/useTasks';
 import { fetchUsers } from '../api/users';
-import { fetchMonthlyRevenue, saveMonthlyRevenue } from '../api/monthlyRevenue';
+import { fetchMonthlyRevenue, saveMonthlyRevenue, fetchYearlyKpi, saveYearlyKpi } from '../api/monthlyRevenue';
 import { useMutation } from '@tanstack/react-query';
 import type { TaskDto, UserDto } from '@ctp1/shared';
 import { useAuthStore } from '../stores/authStore';
@@ -95,6 +95,20 @@ export default function ProjectBoardPage() {
   const handleSaveRevenue = (m: number, amount: number) => {
     if (!projectId) return;
     saveRevenueMut.mutate({ projectId, month: m, year, amount });
+  };
+
+  const { data: yearlyKpi } = useQuery({
+    queryKey: ['yearlyKpi', projectId, year],
+    queryFn: () => fetchYearlyKpi(projectId!, year),
+    enabled: !!projectId,
+  });
+  const saveKpiMut = useMutation({
+    mutationFn: saveYearlyKpi,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['yearlyKpi', projectId, year] }),
+  });
+  const handleSaveKpi = (amount: number) => {
+    if (!projectId) return;
+    saveKpiMut.mutate({ projectId, year, amount });
   };
 
   // Members dismissed from this project (persisted per-project in localStorage)
@@ -291,6 +305,8 @@ export default function ProjectBoardPage() {
           revenues={monthlyRevenues}
           canEdit={canEdit}
           onSaveRevenue={handleSaveRevenue}
+          kpi={yearlyKpi ? Number(yearlyKpi.amount) : 0}
+          onSaveKpi={handleSaveKpi}
         />
         {canEdit && <button onClick={handleAddTaskGeneral} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">+ Thêm Task</button>}
       </div>

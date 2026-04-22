@@ -9,6 +9,8 @@ interface Props {
   revenues?: MonthlyRevenueDto[];
   canEdit?: boolean;
   onSaveRevenue?: (month: number, amount: number) => void;
+  kpi?: number;
+  onSaveKpi?: (amount: number) => void;
 }
 
 const MONTH_NAMES = [
@@ -16,7 +18,7 @@ const MONTH_NAMES = [
   'Thg 7', 'Thg 8', 'Thg 9', 'Thg 10', 'Thg 11', 'Thg 12',
 ];
 
-export default function MonthWeekSelector({ month, year, onChangeMonth, revenues = [], canEdit, onSaveRevenue }: Props) {
+export default function MonthWeekSelector({ month, year, onChangeMonth, revenues = [], canEdit, onSaveRevenue, kpi = 0, onSaveKpi }: Props) {
   const revMap = new Map(revenues.map((r) => [r.month, Number(r.amount)]));
 
   // YTD cutoff: current year → up to current real month; past year → all 12; future → 0
@@ -29,7 +31,8 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
     .filter(([m]) => m <= ytdCutoff)
     .reduce((sum, [, amt]) => sum + amt, 0);
 
-  const [editingMonth, setEditingMonth] = useState<number | null>(null);
+  // editingMonth: 1..12 = month revenue; 'kpi' = yearly KPI; null = not editing
+  const [editingMonth, setEditingMonth] = useState<number | 'kpi' | null>(null);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -38,19 +41,25 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
     if (editingMonth !== null) inputRef.current?.focus();
   }, [editingMonth]);
 
-  const startEdit = (m: number) => {
+  const pct = kpi > 0 ? Math.round((ytdTotal / kpi) * 100) : null;
+
+  const startEdit = (target: number | 'kpi') => {
     if (!canEdit) return;
-    const current = revMap.get(m);
+    const current = target === 'kpi' ? kpi : revMap.get(target);
     setDraft(current ? String(current) : '');
     setError(null);
-    setEditingMonth(m);
+    setEditingMonth(target);
   };
 
   const commit = () => {
     if (editingMonth === null) return;
     const trimmed = draft.trim();
+    const applySave = (amount: number) => {
+      if (editingMonth === 'kpi') onSaveKpi?.(amount);
+      else onSaveRevenue?.(editingMonth, amount);
+    };
     if (!trimmed) {
-      onSaveRevenue?.(editingMonth, 0);
+      applySave(0);
       setEditingMonth(null);
       return;
     }
@@ -59,7 +68,7 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
       setError('Sai format. VD: 5200000000 hoặc 5.2B');
       return;
     }
-    onSaveRevenue?.(editingMonth, parsed);
+    applySave(parsed);
     setEditingMonth(null);
   };
 
@@ -115,9 +124,13 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
                 </div>
               );
             })}
-            {/* YTD column header placeholder */}
+            {/* YTD label */}
             <div className="w-[70px] flex justify-center">
               <span className="text-[10px] text-blue-600 font-medium">YTD {year}</span>
+            </div>
+            {/* KPI label */}
+            <div className="w-[80px] flex justify-center">
+              <span className="text-[10px] text-purple-600 font-medium">KPI {year}</span>
             </div>
           </div>
           {/* Month tabs row */}
@@ -143,7 +156,37 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
               title={`Tổng doanh thu ${year} tính đến ${ytdCutoff > 0 ? `Thg ${ytdCutoff}` : 'đầu năm'}`}
             >
               {formatVnd(ytdTotal)}
+              {pct !== null && (
+                <div className="text-[9px] font-normal text-blue-500">{pct}% KPI</div>
+              )}
             </div>
+            {/* KPI cell — click to edit */}
+            {editingMonth === 'kpi' ? (
+              <div className="w-[80px] flex flex-col items-stretch">
+                <input
+                  ref={inputRef}
+                  value={draft}
+                  onChange={(e) => { setDraft(e.target.value); setError(null); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commit();
+                    if (e.key === 'Escape') { setEditingMonth(null); setError(null); }
+                  }}
+                  onBlur={commit}
+                  placeholder="50B"
+                  className="text-xs border border-purple-400 rounded-md outline-none px-2 py-1.5 w-full text-center bg-white"
+                />
+                {error && <span className="text-[9px] text-red-500 text-center">{error}</span>}
+              </div>
+            ) : (
+              <button
+                onClick={() => startEdit('kpi')}
+                disabled={!canEdit}
+                className={`w-[80px] py-1.5 rounded-md text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 text-center whitespace-nowrap ${canEdit ? 'hover:bg-purple-100 cursor-pointer' : 'cursor-default'}`}
+                title={canEdit ? 'Click để sửa KPI năm' : ''}
+              >
+                {kpi > 0 ? formatVnd(kpi) : '— Set KPI'}
+              </button>
+            )}
           </div>
         </div>
         <button

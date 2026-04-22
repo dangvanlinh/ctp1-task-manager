@@ -27,3 +27,20 @@ export function saveMonthlyRevenue(data: {
     body: JSON.stringify(data),
   });
 }
+
+export interface YearlyKpiDto {
+  projectId: string;
+  year: number;
+  amount: string;
+}
+
+export function fetchYearlyKpi(projectId: string, year: number) {
+  return apiFetch<YearlyKpiDto>(`/monthly-revenue/kpi?projectId=${projectId}&year=${year}`);
+}
+
+export function saveYearlyKpi(data: { projectId: string; year: number; amount: number | string }) {
+  return apiFetch<YearlyKpiDto>('/monthly-revenue/kpi', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
