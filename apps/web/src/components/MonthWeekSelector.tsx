@@ -124,13 +124,9 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
                 </div>
               );
             })}
-            {/* YTD label */}
-            <div className="w-[70px] flex justify-center">
-              <span className="text-[10px] text-blue-600 font-medium">YTD {year}</span>
-            </div>
-            {/* KPI label */}
-            <div className="w-[80px] flex justify-center">
-              <span className="text-[10px] text-purple-600 font-medium">KPI {year}</span>
+            {/* Progress label */}
+            <div className="w-[180px] flex justify-center">
+              <span className="text-[10px] text-gray-500 font-medium">Progress {year}</span>
             </div>
           </div>
           {/* Month tabs row */}
@@ -150,19 +146,9 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
                 </button>
               );
             })}
-            {/* YTD cell */}
-            <div
-              className="w-[70px] py-1.5 rounded-md text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 text-center whitespace-nowrap"
-              title={`Tổng doanh thu ${year} tính đến ${ytdCutoff > 0 ? `Thg ${ytdCutoff}` : 'đầu năm'}`}
-            >
-              {formatVnd(ytdTotal)}
-              {pct !== null && (
-                <div className="text-[9px] font-normal text-blue-500">{pct}% KPI</div>
-              )}
-            </div>
-            {/* KPI cell — click to edit */}
+            {/* YTD/KPI progress bar — KPI total, YTD fill, click KPI segment to edit */}
             {editingMonth === 'kpi' ? (
-              <div className="w-[80px] flex flex-col items-stretch">
+              <div className="w-[180px] flex flex-col items-stretch">
                 <input
                   ref={inputRef}
                   value={draft}
@@ -172,7 +158,7 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
                     if (e.key === 'Escape') { setEditingMonth(null); setError(null); }
                   }}
                   onBlur={commit}
-                  placeholder="50B"
+                  placeholder="KPI cả năm, VD: 50B"
                   className="text-xs border border-purple-400 rounded-md outline-none px-2 py-1.5 w-full text-center bg-white"
                 />
                 {error && <span className="text-[9px] text-red-500 text-center">{error}</span>}
@@ -181,10 +167,24 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
               <button
                 onClick={() => startEdit('kpi')}
                 disabled={!canEdit}
-                className={`w-[80px] py-1.5 rounded-md text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-200 text-center whitespace-nowrap ${canEdit ? 'hover:bg-purple-100 cursor-pointer' : 'cursor-default'}`}
-                title={canEdit ? 'Click để sửa KPI năm' : ''}
+                className={`w-[180px] h-[34px] relative rounded-md border border-gray-200 bg-gray-100 overflow-hidden ${canEdit ? 'hover:border-purple-300 cursor-pointer' : 'cursor-default'}`}
+                title={canEdit ? 'Click để sửa KPI năm' : `YTD ${formatVnd(ytdTotal)} / KPI ${formatVnd(kpi)}`}
               >
-                {kpi > 0 ? formatVnd(kpi) : '— Set KPI'}
+                {/* Fill = YTD progress */}
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-blue-400"
+                  style={{ width: kpi > 0 ? `${Math.min(100, (ytdTotal / kpi) * 100)}%` : '0%' }}
+                />
+                {/* Overlay text */}
+                <div className="relative z-10 flex items-center justify-between h-full px-2 text-xs font-semibold">
+                  <span className={`${kpi > 0 && ytdTotal / kpi > 0.3 ? 'text-white' : 'text-blue-700'} drop-shadow-sm`}>
+                    {formatVnd(ytdTotal)}
+                    {pct !== null && <span className="ml-1 text-[10px] font-normal">({pct}%)</span>}
+                  </span>
+                  <span className="text-gray-700 text-[11px]">
+                    / {kpi > 0 ? formatVnd(kpi) : 'Set KPI'}
+                  </span>
+                </div>
               </button>
             )}
           </div>
