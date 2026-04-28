@@ -31,7 +31,6 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
     .filter(([m]) => m <= ytdCutoff)
     .reduce((sum, [, amt]) => sum + amt, 0);
 
-  // editingMonth: 1..12 = month revenue; 'kpi' = yearly KPI; null = not editing
   const [editingMonth, setEditingMonth] = useState<number | 'kpi' | null>(null);
   const [draft, setDraft] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -43,9 +42,7 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
 
   const pct = kpi > 0 ? Math.round((ytdTotal / kpi) * 100) : null;
 
-  // Forecast target for months with no actual revenue yet:
-  // remaining_kpi = KPI - sum(actual revenues set, regardless of month)
-  // spread evenly across months that haven't been set
+  // Forecast for un-set months
   const monthsWithData = revMap.size;
   const monthsWithoutData = 12 - monthsWithData;
   const totalActual = Array.from(revMap.values()).reduce((s, v) => s + v, 0);
@@ -84,136 +81,143 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
   };
 
   return (
-    <div className="inline-flex flex-col items-stretch">
-      <div className="flex items-end gap-2">
+    <div className="w-full">
+      {/* Top header: year nav only */}
+      <div className="flex items-center gap-1 mb-2 px-1">
         <button
           onClick={() => onChangeMonth(month, year - 1)}
-          className="px-2 py-1 text-gray-400 hover:text-gray-700 self-center"
+          className="text-gray-400 hover:text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-100"
         >
-          &#9664;
+          ◀
         </button>
-        <div className="flex flex-col items-stretch">
-          <div className="text-xs font-semibold text-gray-500 mb-0.5 ml-2">{year}</div>
-          {/* Revenue row (above month tabs) */}
-          <div className="flex gap-1 px-1 items-end">
-            {MONTH_NAMES.map((_, i) => {
-              const m = i + 1;
-              const amt = revMap.get(m);
-              const isEditing = editingMonth === m;
-              return (
-                <div key={m} className="w-[56px] flex justify-center">
-                  {isEditing ? (
-                    <div className="flex flex-col items-start">
-                      <input
-                        ref={inputRef}
-                        value={draft}
-                        onChange={(e) => { setDraft(e.target.value); setError(null); }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') commit();
-                          if (e.key === 'Escape') { setEditingMonth(null); setError(null); }
-                        }}
-                        onBlur={commit}
-                        placeholder="5.2B"
-                        className="text-xs border-b border-blue-400 outline-none px-1 w-full text-center bg-transparent"
-                      />
-                      {error && <span className="text-[9px] text-red-500 whitespace-nowrap">{error}</span>}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => startEdit(m)}
-                      disabled={!canEdit}
-                      className={`text-xs font-semibold px-1 rounded w-full ${
-                        amt && amt > 0
-                          ? 'text-gray-700'
-                          : targetPerRemaining > 0
-                          ? 'text-orange-500 italic'
-                          : 'text-gray-300'
-                      } ${canEdit ? 'hover:bg-blue-50 hover:text-blue-600 cursor-pointer' : 'cursor-default'}`}
-                      title={
-                        canEdit
-                          ? amt && amt > 0
-                            ? `Doanh thu thực: ${formatVnd(amt)} VND. Click để sửa.`
-                            : `Mục tiêu để đạt KPI: ${formatVnd(targetPerRemaining)} VND. Click để nhập doanh thu thực.`
-                          : ''
-                      }
-                    >
-                      {amt && amt > 0 ? formatVnd(amt) : targetPerRemaining > 0 ? formatVnd(targetPerRemaining) : '—'}
-                    </button>
-                  )}
+        <span className="font-bold text-base text-gray-800 w-14 text-center">{year}</span>
+        <button
+          onClick={() => onChangeMonth(month, year + 1)}
+          className="text-gray-400 hover:text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-100"
+        >
+          ▶
+        </button>
+      </div>
+
+      {/* Revenue per month — 12 columns aligned with Roadmap */}
+      <div
+        className="grid w-full"
+        style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))' }}
+      >
+        {MONTH_NAMES.map((_, i) => {
+          const m = i + 1;
+          const amt = revMap.get(m);
+          const isEditing = editingMonth === m;
+          const showTarget = (!amt || amt === 0) && targetPerRemaining > 0;
+          return (
+            <div key={m} className="flex justify-center items-end pb-1">
+              {isEditing ? (
+                <div className="flex flex-col items-stretch w-full px-1">
+                  <input
+                    ref={inputRef}
+                    value={draft}
+                    onChange={(e) => { setDraft(e.target.value); setError(null); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') commit();
+                      if (e.key === 'Escape') { setEditingMonth(null); setError(null); }
+                    }}
+                    onBlur={commit}
+                    placeholder="5.2B"
+                    className="text-xs border-b border-blue-400 outline-none px-1 w-full text-center bg-transparent"
+                  />
+                  {error && <span className="text-[9px] text-red-500 whitespace-nowrap text-center">{error}</span>}
                 </div>
-              );
-            })}
-            {/* Progress label */}
-            <div className="w-[180px] flex justify-center">
-              <span className="text-[10px] text-gray-500 font-medium">Progress {year}</span>
-            </div>
-          </div>
-          {/* Month tabs row */}
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1 items-center">
-            {MONTH_NAMES.map((name, i) => {
-              const m = i + 1;
-              const isActive = m === month;
-              return (
+              ) : (
                 <button
-                  key={m}
-                  onClick={() => onChangeMonth(m, year)}
-                  className={`w-[56px] py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    isActive ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
-                  }`}
+                  onClick={() => startEdit(m)}
+                  disabled={!canEdit}
+                  className={`text-xs font-semibold rounded w-full ${
+                    amt && amt > 0
+                      ? 'text-gray-700'
+                      : showTarget
+                      ? 'text-orange-500 italic'
+                      : 'text-gray-300'
+                  } ${canEdit ? 'hover:bg-blue-50 hover:text-blue-600 cursor-pointer' : 'cursor-default'}`}
+                  title={
+                    canEdit
+                      ? amt && amt > 0
+                        ? `Doanh thu thực: ${formatVnd(amt)} VND. Click để sửa.`
+                        : `Mục tiêu để đạt KPI: ${formatVnd(targetPerRemaining)} VND. Click để nhập doanh thu thực.`
+                      : ''
+                  }
                 >
-                  {name}
+                  {amt && amt > 0 ? formatVnd(amt) : showTarget ? formatVnd(targetPerRemaining) : '—'}
                 </button>
-              );
-            })}
-            {/* YTD/KPI progress bar — KPI total, YTD fill, click KPI segment to edit */}
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Month tabs row — 12 columns same grid */}
+      <div
+        className="grid w-full bg-gray-100 rounded-lg p-1 gap-1"
+        style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))' }}
+      >
+        {MONTH_NAMES.map((name, i) => {
+          const m = i + 1;
+          const isActive = m === month;
+          return (
+            <button
+              key={m}
+              onClick={() => onChangeMonth(m, year)}
+              className={`py-1.5 rounded-md text-sm font-medium transition-colors ${
+                isActive ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {name}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Full-width Progress bar — under month tabs */}
+      <div className="mt-2">
+        <div className="flex items-center justify-between mb-1 px-1">
+          <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+            Progress {year}
+          </span>
+          <span className="text-[11px] text-gray-500">
+            <span className="font-semibold text-gray-700">{formatVnd(ytdTotal)}</span>
+            {pct !== null && <span className="text-blue-600 font-medium ml-1">({pct}%)</span>}
+            <span className="mx-1 text-gray-300">/</span>
             {editingMonth === 'kpi' ? (
-              <div className="w-[180px] flex flex-col items-stretch">
-                <input
-                  ref={inputRef}
-                  value={draft}
-                  onChange={(e) => { setDraft(e.target.value); setError(null); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') commit();
-                    if (e.key === 'Escape') { setEditingMonth(null); setError(null); }
-                  }}
-                  onBlur={commit}
-                  placeholder="KPI cả năm, VD: 50B"
-                  className="text-xs border border-purple-400 rounded-md outline-none px-2 py-1.5 w-full text-center bg-white"
-                />
-                {error && <span className="text-[9px] text-red-500 text-center">{error}</span>}
-              </div>
+              <input
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => { setDraft(e.target.value); setError(null); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') commit();
+                  if (e.key === 'Escape') { setEditingMonth(null); setError(null); }
+                }}
+                onBlur={commit}
+                placeholder="KPI VD: 50B"
+                className="text-[11px] border border-purple-400 rounded outline-none px-1.5 py-0.5 w-24 bg-white inline-block"
+              />
             ) : (
               <button
                 onClick={() => startEdit('kpi')}
                 disabled={!canEdit}
-                className={`w-[180px] h-[34px] relative rounded-md border border-gray-200 bg-gray-100 overflow-hidden ${canEdit ? 'hover:border-purple-300 cursor-pointer' : 'cursor-default'}`}
-                title={canEdit ? 'Click để sửa KPI năm' : `YTD ${formatVnd(ytdTotal)} / KPI ${formatVnd(kpi)}`}
+                className={`font-semibold ${canEdit ? 'text-purple-700 hover:underline cursor-pointer' : 'text-gray-700 cursor-default'}`}
+                title={canEdit ? 'Click để sửa KPI năm' : ''}
               >
-                {/* Fill = YTD progress */}
-                <div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 to-blue-400"
-                  style={{ width: kpi > 0 ? `${Math.min(100, (ytdTotal / kpi) * 100)}%` : '0%' }}
-                />
-                {/* Overlay text */}
-                <div className="relative z-10 flex items-center justify-between h-full px-2 text-xs font-semibold">
-                  <span className={`${kpi > 0 && ytdTotal / kpi > 0.3 ? 'text-white' : 'text-blue-700'} drop-shadow-sm`}>
-                    {formatVnd(ytdTotal)}
-                    {pct !== null && <span className="ml-1 text-[10px] font-normal">({pct}%)</span>}
-                  </span>
-                  <span className="text-gray-700 text-[11px]">
-                    / {kpi > 0 ? formatVnd(kpi) : 'Set KPI'}
-                  </span>
-                </div>
+                KPI {kpi > 0 ? formatVnd(kpi) : '— Set KPI'}
               </button>
             )}
-          </div>
+            {error && <span className="text-[10px] text-red-500 ml-2">{error}</span>}
+          </span>
         </div>
-        <button
-          onClick={() => onChangeMonth(month, year + 1)}
-          className="px-2 py-1 text-gray-400 hover:text-gray-700 self-center"
-        >
-          &#9654;
-        </button>
+        <div className="relative h-3 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+          <div
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-blue-500 to-blue-400 rounded-full transition-all"
+            style={{ width: kpi > 0 ? `${Math.min(100, (ytdTotal / kpi) * 100)}%` : '0%' }}
+          />
+        </div>
       </div>
     </div>
   );
