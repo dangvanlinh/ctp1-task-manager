@@ -50,6 +50,30 @@ auth.post('/register', zValidator('json', registerSchema), async (c) => {
   return c.json(tokens);
 });
 
+// SSO login — read email from OAuth2 Proxy headers (X-Forwarded-Email, X-Auth-Request-Email, etc)
+auth.post('/sso', async (c) => {
+  const ssoEmail =
+    c.req.header('X-Forwarded-Email') ||
+    c.req.header('X-Auth-Request-Email') ||
+    c.req.header('X-Forwarded-Preferred-Username') ||
+    '';
+
+  if (!ssoEmail) {
+    return c.json({ message: 'No SSO email header found', headers: Object.fromEntries(Object.entries(c.req.header()).filter(([k]) => k.toLowerCase().startsWith('x-'))) }, 401);
+  }
+
+  const user = await prisma.user.findUnique({ where: { ssoEmail: ssoEmail.toLowerCase() } });
+  if (!user) {
+    return c.json({
+      message: `Email ${ssoEmail} chưa được thêm vào project. Liên hệ PM để được thêm vào Members.`,
+      ssoEmail,
+    }, 403);
+  }
+
+  const tokens = generateTokens(user.id, user.email, user.role, user.name);
+  return c.json({ ...tokens, user: { id: user.id, name: user.name, email: user.email, role: user.role, ssoEmail: user.ssoEmail } });
+});
+
 auth.post('/refresh', authMiddleware, async (c) => {
   const jwtUser = c.get('user');
   const user = await prisma.user.findUnique({ where: { id: jwtUser.id } });

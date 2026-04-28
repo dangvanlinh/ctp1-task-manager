@@ -8,20 +8,22 @@ import { authMiddleware, rolesGuard } from '../middleware/auth';
 const users = new Hono();
 const DEFAULT_PASSWORD = '123456';
 
-const userSelect = { id: true, email: true, name: true, role: true, position: true, createdAt: true };
+const userSelect = { id: true, email: true, ssoEmail: true, name: true, role: true, position: true, createdAt: true };
 
 const createUserSchema = z.object({
   email: z.string().optional(),
+  ssoEmail: z.string().optional().nullable(),
   name: z.string().min(1),
   role: z.enum(['MEMBER', 'PM', 'ADMIN']).optional(),
-  position: z.enum(['DESIGNER', 'DEV', 'ARTIST']).optional(),
+  position: z.enum(['DESIGNER', 'DEV', 'ARTIST', 'BD']).optional(),
 });
 
 const updateUserSchema = z.object({
   email: z.string().email().optional(),
+  ssoEmail: z.string().optional().nullable(),
   name: z.string().min(1).optional(),
   role: z.enum(['MEMBER', 'PM', 'ADMIN']).optional(),
-  position: z.enum(['DESIGNER', 'DEV', 'ARTIST']).optional(),
+  position: z.enum(['DESIGNER', 'DEV', 'ARTIST', 'BD']).optional(),
 });
 
 users.use('*', authMiddleware);
@@ -42,6 +44,7 @@ users.post('/', rolesGuard('ADMIN', 'PM'), zValidator('json', createUserSchema),
   const user = await prisma.user.create({
     data: {
       email,
+      ssoEmail: data.ssoEmail ? data.ssoEmail.toLowerCase().trim() : null,
       name: data.name,
       password: hashed,
       role: data.role || 'MEMBER',
@@ -59,7 +62,11 @@ users.patch('/:id', rolesGuard('ADMIN', 'PM'), zValidator('json', updateUserSche
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) return c.json({ message: 'User not found' }, 404);
 
-  const updated = await prisma.user.update({ where: { id }, data, select: userSelect });
+  const patch: any = { ...data };
+  if (data.ssoEmail !== undefined) {
+    patch.ssoEmail = data.ssoEmail ? data.ssoEmail.toLowerCase().trim() : null;
+  }
+  const updated = await prisma.user.update({ where: { id }, data: patch, select: userSelect });
   return c.json(updated);
 });
 

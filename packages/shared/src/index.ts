@@ -31,6 +31,7 @@ export enum TaskPriority {
 export interface UserDto {
   id: string;
   email: string;
+  ssoEmail?: string | null;
   name: string;
   role: Role;
   position: string;

@@ -5,3 +5,8 @@ dist
 .turbo
 dev.db
 dev.db-journal
+
+# zdeploy CLI bindings + secrets (do not commit)
+.env.deploy
+.zdeploy.yml
+.playwright-mcp/

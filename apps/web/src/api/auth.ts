@@ -18,3 +18,10 @@ export function register(email: string, password: string, name: string) {
     body: JSON.stringify({ email, password, name }),
   });
 }
+
+export function ssoLogin() {
+  return apiFetch<AuthResponse & { user: { id: string; name: string; email: string; role: string; ssoEmail: string | null } }>(
+    '/auth/sso',
+    { method: 'POST' },
+  );
+}

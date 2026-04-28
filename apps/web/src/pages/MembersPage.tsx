@@ -13,31 +13,34 @@ export default function MembersPage() {
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newSsoEmail, setNewSsoEmail] = useState('');
   const [newRole, setNewRole] = useState('MEMBER');
   const [newPosition, setNewPosition] = useState('DEV');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editEmail, setEditEmail] = useState('');
+  const [editSsoEmail, setEditSsoEmail] = useState('');
   const [editRole, setEditRole] = useState('');
   const [editPosition, setEditPosition] = useState('');
 
   const handleCreate = () => {
     if (!newName.trim()) return;
-    createUser.mutate({ email: newEmail.trim() || undefined, name: newName.trim(), role: newRole, position: newPosition }, {
-      onSuccess: () => { setNewName(''); setNewEmail(''); setNewRole('MEMBER'); setNewPosition('DEV'); setShowForm(false); },
+    createUser.mutate({ email: newEmail.trim() || undefined, ssoEmail: newSsoEmail.trim() || null, name: newName.trim(), role: newRole, position: newPosition } as any, {
+      onSuccess: () => { setNewName(''); setNewEmail(''); setNewSsoEmail(''); setNewRole('MEMBER'); setNewPosition('DEV'); setShowForm(false); },
     });
   };
 
   const handleUpdate = (id: string) => {
-    updateUser.mutate({ id, name: editName, email: editEmail, role: editRole, position: editPosition }, {
+    updateUser.mutate({ id, name: editName, email: editEmail, ssoEmail: editSsoEmail.trim() || null, role: editRole, position: editPosition } as any, {
       onSuccess: () => setEditingId(null),
     });
   };
 
-  const startEdit = (user: { id: string; name: string; email: string; role: string; position: string }) => {
+  const startEdit = (user: { id: string; name: string; email: string; ssoEmail?: string | null; role: string; position: string }) => {
     setEditingId(user.id);
     setEditName(user.name);
     setEditEmail(user.email);
+    setEditSsoEmail(user.ssoEmail || '');
     setEditRole(user.role);
     setEditPosition(user.position);
   };
@@ -87,6 +90,12 @@ export default function MembersPage() {
               placeholder="Email (tùy chọn)"
               className="flex-1 text-sm border rounded px-3 py-2 outline-none focus:border-blue-400"
             />
+            <input
+              value={newSsoEmail}
+              onChange={(e) => setNewSsoEmail(e.target.value)}
+              placeholder="SSO email (VD: abc@vng.com.vn)"
+              className="flex-1 text-sm border rounded px-3 py-2 outline-none focus:border-blue-400"
+            />
             <select
               value={newRole}
               onChange={(e) => setNewRole(e.target.value)}
@@ -130,6 +139,7 @@ export default function MembersPage() {
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Tên</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Email</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-600">SSO Email</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Position</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Thao tác</th>
@@ -147,6 +157,9 @@ export default function MembersPage() {
                       <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="text-sm border rounded px-2 py-1 w-full outline-none focus:border-blue-400" />
                     </td>
                     <td className="px-4 py-2">
+                      <input value={editSsoEmail} onChange={(e) => setEditSsoEmail(e.target.value)} placeholder="abc@vng.com.vn" className="text-sm border rounded px-2 py-1 w-full outline-none focus:border-blue-400" />
+                    </td>
+                    <td className="px-4 py-2">
                       <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="text-sm border rounded px-2 py-1 outline-none">
                         <option value="MEMBER">Member</option>
                         <option value="PM">PM</option>
@@ -158,6 +171,7 @@ export default function MembersPage() {
                         <option value="DESIGNER">Designer</option>
                         <option value="DEV">Dev</option>
                         <option value="ARTIST">Artist</option>
+                        <option value="BD">BD</option>
                       </select>
                     </td>
                     <td className="px-4 py-2 text-right space-x-2">
@@ -169,6 +183,7 @@ export default function MembersPage() {
                   <>
                     <td className="px-4 py-3 font-medium text-gray-800">{user.name}</td>
                     <td className="px-4 py-3 text-gray-500">{user.email}</td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">{(user as any).ssoEmail || <span className="text-gray-300 italic">chưa set</span>}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded font-medium ${roleColor(user.role)}`}>{user.role}</span>
                     </td>

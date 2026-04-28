@@ -1,57 +1,62 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  fetchBacklog, createBacklog, updateBacklog, deleteBacklog, bulkBacklog,
+  type BacklogItemDto,
+} from '../api/backlog';
 
-interface BacklogItem {
-  id: string;
-  text: string;
-  done: boolean;
-}
-
-function getKey(projectId: string) {
-  return `backlog-${projectId}`;
-}
-
-function load(projectId: string): BacklogItem[] {
-  try {
-    const raw = localStorage.getItem(getKey(projectId));
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return [];
-}
-
-function save(projectId: string, items: BacklogItem[]) {
-  try { localStorage.setItem(getKey(projectId), JSON.stringify(items)); } catch { /* ignore */ }
-}
+const LEGACY_KEY = (projectId: string) => `backlog-${projectId}`;
 
 export default function BacklogBox({ projectId }: { projectId: string }) {
-  const [items, setItems] = useState<BacklogItem[]>(() => load(projectId));
+  const qc = useQueryClient();
+  const { data: items = [] } = useQuery({
+    queryKey: ['backlog', projectId],
+    queryFn: () => fetchBacklog(projectId),
+    enabled: !!projectId,
+  });
+
   const [collapsed, setCollapsed] = useState(false);
   const [newText, setNewText] = useState('');
+  const migrated = useRef(false);
 
-  const update = useCallback((updater: (prev: BacklogItem[]) => BacklogItem[]) => {
-    setItems((prev) => {
-      const next = updater(prev);
-      save(projectId, next);
-      return next;
-    });
-  }, [projectId]);
+  // One-time migration: if API empty AND localStorage has items → push to DB
+  useEffect(() => {
+    if (migrated.current) return;
+    if (items.length > 0) { migrated.current = true; return; }
+    try {
+      const raw = localStorage.getItem(LEGACY_KEY(projectId));
+      if (!raw) { migrated.current = true; return; }
+      const legacy: { text: string; done: boolean }[] = JSON.parse(raw);
+      if (!Array.isArray(legacy) || legacy.length === 0) { migrated.current = true; return; }
+      migrated.current = true;
+      bulkBacklog(projectId, legacy.map((it, i) => ({ text: it.text, done: it.done, order: i })))
+        .then(() => {
+          qc.invalidateQueries({ queryKey: ['backlog', projectId] });
+          // Mark legacy as migrated (don't delete in case user wants to inspect)
+          localStorage.setItem(LEGACY_KEY(projectId) + '-migrated', '1');
+        })
+        .catch(() => { /* ignore */ });
+    } catch { migrated.current = true; }
+  }, [projectId, items.length, qc]);
+
+  const addMut = useMutation({
+    mutationFn: createBacklog,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['backlog', projectId] }),
+  });
+  const updMut = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<BacklogItemDto> }) => updateBacklog(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['backlog', projectId] }),
+  });
+  const delMut = useMutation({
+    mutationFn: deleteBacklog,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['backlog', projectId] }),
+  });
 
   const addItem = () => {
     const trimmed = newText.trim();
     if (!trimmed) return;
-    update((prev) => [...prev, { id: Date.now().toString(), text: trimmed, done: false }]);
+    addMut.mutate({ projectId, text: trimmed, order: items.length });
     setNewText('');
-  };
-
-  const toggleDone = (id: string) => {
-    update((prev) => prev.map((item) => item.id === id ? { ...item, done: !item.done } : item));
-  };
-
-  const removeItem = (id: string) => {
-    update((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const editItem = (id: string, text: string) => {
-    update((prev) => prev.map((item) => item.id === id ? { ...item, text } : item));
   };
 
   return (
@@ -71,16 +76,19 @@ export default function BacklogBox({ projectId }: { projectId: string }) {
                 <input
                   type="checkbox"
                   checked={item.done}
-                  onChange={() => toggleDone(item.id)}
+                  onChange={() => updMut.mutate({ id: item.id, data: { done: !item.done } })}
                   className="w-3.5 h-3.5 rounded border-gray-300 text-blue-600 flex-shrink-0"
                 />
                 <input
-                  value={item.text}
-                  onChange={(e) => editItem(item.id, e.target.value)}
+                  defaultValue={item.text}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== item.text) updMut.mutate({ id: item.id, data: { text: v } });
+                  }}
                   className={`flex-1 bg-transparent outline-none border-0 px-1 py-0.5 hover:bg-gray-50 rounded ${item.done ? 'line-through text-gray-400' : 'text-gray-700'}`}
                 />
                 <button
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => delMut.mutate(item.id)}
                   className="opacity-0 group-hover/bl:opacity-100 text-red-400 hover:text-red-600 text-xs flex-shrink-0"
                 >
                   ✕

@@ -43,6 +43,17 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
 
   const pct = kpi > 0 ? Math.round((ytdTotal / kpi) * 100) : null;
 
+  // Forecast target for months with no actual revenue yet:
+  // remaining_kpi = KPI - sum(actual revenues set, regardless of month)
+  // spread evenly across months that haven't been set
+  const monthsWithData = revMap.size;
+  const monthsWithoutData = 12 - monthsWithData;
+  const totalActual = Array.from(revMap.values()).reduce((s, v) => s + v, 0);
+  const remainingKpi = Math.max(0, kpi - totalActual);
+  const targetPerRemaining = monthsWithoutData > 0 && remainingKpi > 0
+    ? Math.round(remainingKpi / monthsWithoutData)
+    : 0;
+
   const startEdit = (target: number | 'kpi') => {
     if (!canEdit) return;
     const current = target === 'kpi' ? kpi : revMap.get(target);
@@ -114,11 +125,19 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
                       className={`text-xs font-semibold px-1 rounded w-full ${
                         amt && amt > 0
                           ? 'text-gray-700'
+                          : targetPerRemaining > 0
+                          ? 'text-orange-500 italic'
                           : 'text-gray-300'
                       } ${canEdit ? 'hover:bg-blue-50 hover:text-blue-600 cursor-pointer' : 'cursor-default'}`}
-                      title={canEdit ? `Click để sửa doanh thu ${MONTH_NAMES[i]}` : ''}
+                      title={
+                        canEdit
+                          ? amt && amt > 0
+                            ? `Doanh thu thực: ${formatVnd(amt)} VND. Click để sửa.`
+                            : `Mục tiêu để đạt KPI: ${formatVnd(targetPerRemaining)} VND. Click để nhập doanh thu thực.`
+                          : ''
+                      }
                     >
-                      {amt && amt > 0 ? formatVnd(amt) : '—'}
+                      {amt && amt > 0 ? formatVnd(amt) : targetPerRemaining > 0 ? formatVnd(targetPerRemaining) : '—'}
                     </button>
                   )}
                 </div>

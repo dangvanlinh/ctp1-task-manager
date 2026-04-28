@@ -1,0 +1,28 @@
+CREATE TABLE IF NOT EXISTS "BacklogItem" (
+  "id" TEXT NOT NULL,
+  "projectId" TEXT NOT NULL,
+  "text" TEXT NOT NULL,
+  "done" BOOLEAN NOT NULL DEFAULT false,
+  "order" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "BacklogItem_pkey" PRIMARY KEY ("id")
+);
+DO $$ BEGIN
+  ALTER TABLE "BacklogItem" ADD CONSTRAINT "BacklogItem_projectId_fkey"
+    FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS "DocLink" (
+  "id" TEXT NOT NULL,
+  "projectId" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "url" TEXT NOT NULL,
+  "addedBy" TEXT NOT NULL DEFAULT 'Ẩn danh',
+  "order" INTEGER NOT NULL DEFAULT 0,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "DocLink_pkey" PRIMARY KEY ("id")
+);
+DO $$ BEGIN
+  ALTER TABLE "DocLink" ADD CONSTRAINT "DocLink_projectId_fkey"
+    FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;

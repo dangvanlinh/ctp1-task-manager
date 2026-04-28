@@ -1,60 +1,70 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  fetchDocLinks, createDocLink, updateDocLink, deleteDocLink, bulkDocLinks,
+  type DocLinkDto,
+} from '../api/docLinks';
 
-interface DocLink {
-  id: string;
-  title: string;
-  url: string;
-  addedBy: string;
-}
-
-function getKey(projectId: string) {
-  return `docLinks-${projectId}`;
-}
-
-function load(projectId: string): DocLink[] {
-  try {
-    const raw = localStorage.getItem(getKey(projectId));
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return [];
-}
-
-function save(projectId: string, items: DocLink[]) {
-  try { localStorage.setItem(getKey(projectId), JSON.stringify(items)); } catch { /* ignore */ }
-}
+const LEGACY_KEY = (projectId: string) => `docLinks-${projectId}`;
 
 export default function DocLinksBox({ projectId }: { projectId: string }) {
-  const [items, setItems] = useState<DocLink[]>(() => load(projectId));
+  const qc = useQueryClient();
+  const { data: items = [] } = useQuery({
+    queryKey: ['docLinks', projectId],
+    queryFn: () => fetchDocLinks(projectId),
+    enabled: !!projectId,
+  });
+
   const [collapsed, setCollapsed] = useState(false);
   const [search, setSearch] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newUrl, setNewUrl] = useState('');
   const [newAddedBy, setNewAddedBy] = useState('');
+  const migrated = useRef(false);
 
-  const update = useCallback((updater: (prev: DocLink[]) => DocLink[]) => {
-    setItems((prev) => {
-      const next = updater(prev);
-      save(projectId, next);
-      return next;
-    });
-  }, [projectId]);
+  // One-time migration from localStorage
+  useEffect(() => {
+    if (migrated.current) return;
+    if (items.length > 0) { migrated.current = true; return; }
+    try {
+      const raw = localStorage.getItem(LEGACY_KEY(projectId));
+      if (!raw) { migrated.current = true; return; }
+      const legacy: { title: string; url: string; addedBy?: string }[] = JSON.parse(raw);
+      if (!Array.isArray(legacy) || legacy.length === 0) { migrated.current = true; return; }
+      migrated.current = true;
+      bulkDocLinks(
+        projectId,
+        legacy.map((it, i) => ({ title: it.title, url: it.url, addedBy: it.addedBy ?? 'Ẩn danh', order: i })),
+      )
+        .then(() => {
+          qc.invalidateQueries({ queryKey: ['docLinks', projectId] });
+          localStorage.setItem(LEGACY_KEY(projectId) + '-migrated', '1');
+        })
+        .catch(() => { /* ignore */ });
+    } catch { migrated.current = true; }
+  }, [projectId, items.length, qc]);
+
+  const addMut = useMutation({
+    mutationFn: createDocLink,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['docLinks', projectId] }),
+  });
+  const updMut = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<DocLinkDto> }) => updateDocLink(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['docLinks', projectId] }),
+  });
+  const delMut = useMutation({
+    mutationFn: deleteDocLink,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['docLinks', projectId] }),
+  });
 
   const addItem = () => {
-    const trimmedTitle = newTitle.trim();
-    const trimmedUrl = newUrl.trim();
-    if (!trimmedTitle || !trimmedUrl) return;
-    update((prev) => [...prev, { id: Date.now().toString(), title: trimmedTitle, url: trimmedUrl, addedBy: newAddedBy.trim() || 'Ẩn danh' }]);
+    const t = newTitle.trim();
+    const u = newUrl.trim();
+    if (!t || !u) return;
+    addMut.mutate({ projectId, title: t, url: u, addedBy: newAddedBy.trim() || 'Ẩn danh', order: items.length });
     setNewTitle('');
     setNewUrl('');
     setNewAddedBy('');
-  };
-
-  const removeItem = (id: string) => {
-    update((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const editTitle = (id: string, title: string) => {
-    update((prev) => prev.map((item) => item.id === id ? { ...item, title } : item));
   };
 
   const filtered = useMemo(() => {
@@ -74,21 +84,22 @@ export default function DocLinksBox({ projectId }: { projectId: string }) {
       </div>
       {!collapsed && (
         <div className="px-4 py-3">
-          {/* Search */}
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Tìm tài liệu..."
             className="w-full text-xs border rounded px-2 py-1.5 outline-none focus:border-blue-400 bg-gray-50 mb-2"
           />
-          {/* List */}
           <div className="space-y-1.5">
             {filtered.map((item) => (
               <div key={item.id} className="flex items-center gap-2 group/doc text-xs">
                 <span className="text-gray-400 flex-shrink-0">🔗</span>
                 <input
-                  value={item.title}
-                  onChange={(e) => editTitle(item.id, e.target.value)}
+                  defaultValue={item.title}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== item.title) updMut.mutate({ id: item.id, data: { title: v } });
+                  }}
                   className="flex-1 bg-transparent outline-none border-0 px-1 py-0.5 hover:bg-gray-50 rounded text-gray-700 min-w-0"
                 />
                 <a
@@ -104,7 +115,7 @@ export default function DocLinksBox({ projectId }: { projectId: string }) {
                   {item.addedBy}
                 </span>
                 <button
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => delMut.mutate(item.id)}
                   className="opacity-0 group-hover/doc:opacity-100 text-red-400 hover:text-red-600 text-xs flex-shrink-0"
                 >
                   ✕
@@ -112,7 +123,6 @@ export default function DocLinksBox({ projectId }: { projectId: string }) {
               </div>
             ))}
           </div>
-          {/* Add form */}
           <div className="flex items-center gap-1.5 mt-2">
             <input
               value={newTitle}
