@@ -135,6 +135,7 @@ interface TimelineProps {
   onUnassignBuild?: (buildId: string, userId: string) => void;
   onPhaseResize?: (buildId: string, startDay: number, endDay: number) => void;
   onReorderBuild?: (buildId: string, direction: 'up' | 'down') => void;
+  onReorderBuilds?: (orderedIds: string[]) => void;
   onWeekBuildResize?: (week: number, buildLabel: string, startDay: number, endDay: number) => void;
   syncKey?: number;
   onAssignWeek?: (userId: string, week: number, buildLabel: string, buildStart: number, buildEnd: number) => void;
@@ -143,7 +144,7 @@ interface TimelineProps {
   rightPanel?: React.ReactNode;
 }
 
-export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, builds = [], users = [], onCreateBuild, onDeleteBuild, onUpdateBuild, onAddMilestone, onDeleteMilestone, onAssignBuild, onUnassignBuild, onPhaseResize, onReorderBuild, onWeekBuildResize, syncKey, onAssignWeek, onUnassignWeek, leftPanel, rightPanel }: TimelineProps) {
+export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, builds = [], users = [], onCreateBuild, onDeleteBuild, onUpdateBuild, onAddMilestone, onDeleteMilestone, onAssignBuild, onUnassignBuild, onPhaseResize, onReorderBuild, onReorderBuilds, onWeekBuildResize, syncKey, onAssignWeek, onUnassignWeek, leftPanel, rightPanel }: TimelineProps) {
   const eventConfigsKey = `eventConfigs-${projectId}`;
   const [events, setEvents] = useState<EventConfig[]>(() => {
     try {
@@ -556,6 +557,7 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
               onUnassignBuild={onUnassignBuild}
               onPhaseResize={onPhaseResize}
               onReorderBuild={onReorderBuild}
+              onReorderBuilds={onReorderBuilds}
               syncKey={syncKey}
             />
           )}

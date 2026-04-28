@@ -9,7 +9,7 @@ const LEGACY_KEY = (projectId: string) => `docLinks-${projectId}`;
 
 export default function DocLinksBox({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
-  const { data: items = [] } = useQuery({
+  const { data: items = [], isFetched } = useQuery({
     queryKey: ['docLinks', projectId],
     queryFn: () => fetchDocLinks(projectId),
     enabled: !!projectId,
@@ -24,25 +24,27 @@ export default function DocLinksBox({ projectId }: { projectId: string }) {
 
   // One-time migration from localStorage
   useEffect(() => {
-    if (migrated.current) return;
+    if (migrated.current || !isFetched) return;
     if (items.length > 0) { migrated.current = true; return; }
+    if (localStorage.getItem(LEGACY_KEY(projectId) + '-migrated')) {
+      migrated.current = true;
+      return;
+    }
     try {
       const raw = localStorage.getItem(LEGACY_KEY(projectId));
       if (!raw) { migrated.current = true; return; }
       const legacy: { title: string; url: string; addedBy?: string }[] = JSON.parse(raw);
       if (!Array.isArray(legacy) || legacy.length === 0) { migrated.current = true; return; }
       migrated.current = true;
+      localStorage.setItem(LEGACY_KEY(projectId) + '-migrated', '1');
       bulkDocLinks(
         projectId,
         legacy.map((it, i) => ({ title: it.title, url: it.url, addedBy: it.addedBy ?? 'Ẩn danh', order: i })),
       )
-        .then(() => {
-          qc.invalidateQueries({ queryKey: ['docLinks', projectId] });
-          localStorage.setItem(LEGACY_KEY(projectId) + '-migrated', '1');
-        })
+        .then(() => qc.invalidateQueries({ queryKey: ['docLinks', projectId] }))
         .catch(() => { /* ignore */ });
     } catch { migrated.current = true; }
-  }, [projectId, items.length, qc]);
+  }, [projectId, items.length, isFetched, qc]);
 
   const addMut = useMutation({
     mutationFn: createDocLink,

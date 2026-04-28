@@ -72,13 +72,24 @@ Trang Project Board (`ProjectBoardPage.tsx`) gồm các phần chính từ trên
 ## Changelog
 
 ### 2026-04-24
-- **Feature — Roadmap N tháng tới** (mặc định 3 tháng):
+- **Feature — Roadmap N tháng tới (monthly columns + drag-drop)**:
   - Component `RoadmapTimeline.tsx` đặt phía trên `WeeklyEventTimeline`.
   - Model `RoadmapUpdate { projectId, name, description, color, startDate, endDate, order }` + migration `20260424_add_roadmap`.
   - API `/roadmap`: GET (allow API token), POST/PATCH/DELETE (ADMIN/PM).
-  - UI: timeline ngang theo ngày (`DAY_WIDTH=16`), header gồm 2 hàng — month label + day number; bar có thể click → modal sửa tên, mô tả, ngày, màu, xoá.
-  - 8 tuỳ chọn màu Tailwind preset; today marker xanh; weekend màu xám nhạt.
-  - Empty state: "Chưa có update nào. Bấm + Thêm update để bắt đầu."
+  - UI redesign: **3 cột monthly** (current month, +1, +2) thay vì timeline daily. Mỗi update là 1 card vertical bên trong cột tháng tương ứng (theo `startDate`).
+  - **Drag-drop**: kéo card sang cột tháng khác → tự update `startDate`/`endDate` thành đầu/cuối tháng đó. Kéo trong cùng cột → reorder.
+  - Click card → modal sửa: name, description, **tháng** (dropdown 3 tùy chọn), 8 màu, xoá.
+  - Cột tháng hiện tại có badge "Hiện tại" + nền xanh nhạt phân biệt.
+
+- **Feature — Dev Timeline drag-drop builds + xoá Live phase**:
+  - `BuildTimeline.tsx`: row build giờ có `draggable={!!onReorderBuilds}`, kéo thả sang vị trí khác → gọi prop mới `onReorderBuilds(orderedIds: string[])`. ProjectBoardPage forward thẳng vào `reorderBuilds.mutate(orderedIds)` (API `/builds/reorder` đã có sẵn).
+  - Trong khi drag, row source mờ đi (`opacity-40`); row target có border xanh trên (`border-t-2 border-blue-400`).
+  - Bỏ điều kiện `phase.type === 'build'` ở nút ✕ xoá phase → giờ Live phase cũng xoá được như Build phases.
+
+- **Bugfix — Backlog/DocLinks duplicate sau migration**:
+  - Logic cũ: useEffect không check flag "đã migrate" → reload trang re-mount → migrate lại từ localStorage → DB nhân đôi.
+  - Fix: thêm check `isFetched` từ useQuery (đảm bảo fetch xong mới quyết định) + check flag `${LEGACY_KEY}-migrated` trong localStorage trước khi migrate. Set flag NGAY trước khi gửi `/bulk` request để tránh double-fire trong race condition.
+  - Migration `20260424_dedupe_backlog_doclinks`: SQL DELETE giữ row id nhỏ nhất, dọn duplicate đã có.
 
 - **Feature — Backlog & DocLinks chuyển từ localStorage sang DB**:
   - 2 model mới `BacklogItem`, `DocLink` (project-scoped). Migration `20260424_add_backlog_doclinks`.

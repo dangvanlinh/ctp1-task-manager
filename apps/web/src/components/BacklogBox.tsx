@@ -9,7 +9,7 @@ const LEGACY_KEY = (projectId: string) => `backlog-${projectId}`;
 
 export default function BacklogBox({ projectId }: { projectId: string }) {
   const qc = useQueryClient();
-  const { data: items = [] } = useQuery({
+  const { data: items = [], isFetched } = useQuery({
     queryKey: ['backlog', projectId],
     queryFn: () => fetchBacklog(projectId),
     enabled: !!projectId,
@@ -19,25 +19,27 @@ export default function BacklogBox({ projectId }: { projectId: string }) {
   const [newText, setNewText] = useState('');
   const migrated = useRef(false);
 
-  // One-time migration: if API empty AND localStorage has items → push to DB
+  // One-time migration: if API empty AND localStorage has items AND never migrated before → push to DB
   useEffect(() => {
-    if (migrated.current) return;
+    if (migrated.current || !isFetched) return;
     if (items.length > 0) { migrated.current = true; return; }
+    if (localStorage.getItem(LEGACY_KEY(projectId) + '-migrated')) {
+      migrated.current = true;
+      return;
+    }
     try {
       const raw = localStorage.getItem(LEGACY_KEY(projectId));
       if (!raw) { migrated.current = true; return; }
       const legacy: { text: string; done: boolean }[] = JSON.parse(raw);
       if (!Array.isArray(legacy) || legacy.length === 0) { migrated.current = true; return; }
       migrated.current = true;
+      // Mark BEFORE the request to prevent double-fire on race
+      localStorage.setItem(LEGACY_KEY(projectId) + '-migrated', '1');
       bulkBacklog(projectId, legacy.map((it, i) => ({ text: it.text, done: it.done, order: i })))
-        .then(() => {
-          qc.invalidateQueries({ queryKey: ['backlog', projectId] });
-          // Mark legacy as migrated (don't delete in case user wants to inspect)
-          localStorage.setItem(LEGACY_KEY(projectId) + '-migrated', '1');
-        })
+        .then(() => qc.invalidateQueries({ queryKey: ['backlog', projectId] }))
         .catch(() => { /* ignore */ });
     } catch { migrated.current = true; }
-  }, [projectId, items.length, qc]);
+  }, [projectId, items.length, isFetched, qc]);
 
   const addMut = useMutation({
     mutationFn: createBacklog,

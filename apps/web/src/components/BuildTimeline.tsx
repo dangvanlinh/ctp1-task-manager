@@ -25,6 +25,7 @@ interface Props {
   onUnassignBuild?: (buildId: string, userId: string) => void;
   onPhaseResize?: (buildId: string, startDay: number, endDay: number) => void;
   onReorderBuild?: (buildId: string, direction: 'up' | 'down') => void;
+  onReorderBuilds?: (orderedIds: string[]) => void;
   syncKey?: number;
 }
 
@@ -82,7 +83,9 @@ function savePhases(buildId: string, phases: DevPhase[]) {
   } catch { /* ignore */ }
 }
 
-export default function BuildTimeline({ builds, users, month, year, dayWidth, totalDays, onCreateBuild, onDeleteBuild, onUpdateBuild, onAssignBuild, onUnassignBuild, onPhaseResize, onReorderBuild, syncKey }: Props) {
+export default function BuildTimeline({ builds, users, month, year, dayWidth, totalDays, onCreateBuild, onDeleteBuild, onUpdateBuild, onAssignBuild, onUnassignBuild, onPhaseResize, onReorderBuild, onReorderBuilds, syncKey }: Props) {
+  const [draggingBuildId, setDraggingBuildId] = useState<string | null>(null);
+  const [dragOverBuildId, setDragOverBuildId] = useState<string | null>(null);
   const [isAddingBuild, setIsAddingBuild] = useState(false);
   const [newBuildName, setNewBuildName] = useState('');
   const [editingBuildName, setEditingBuildName] = useState<string | null>(null);
@@ -283,7 +286,39 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
 
         return (
           <div key={build.id}>
-          <div className="relative border-b group/row" style={{ height: ROW_HEIGHT }}>
+          <div
+            className={`relative border-b group/row ${draggingBuildId === build.id ? 'opacity-40' : ''} ${dragOverBuildId === build.id ? 'border-t-2 border-blue-400' : ''}`}
+            style={{ height: ROW_HEIGHT }}
+            draggable={!!onReorderBuilds}
+            onDragStart={(e) => {
+              e.dataTransfer.setData('text/build-id', build.id);
+              e.dataTransfer.effectAllowed = 'move';
+              setDraggingBuildId(build.id);
+            }}
+            onDragEnd={() => { setDraggingBuildId(null); setDragOverBuildId(null); }}
+            onDragOver={(e) => {
+              if (!onReorderBuilds) return;
+              e.preventDefault();
+              e.dataTransfer.dropEffect = 'move';
+              if (draggingBuildId && draggingBuildId !== build.id) setDragOverBuildId(build.id);
+            }}
+            onDragLeave={() => setDragOverBuildId(null)}
+            onDrop={(e) => {
+              if (!onReorderBuilds) return;
+              e.preventDefault();
+              const draggedId = e.dataTransfer.getData('text/build-id');
+              setDragOverBuildId(null);
+              setDraggingBuildId(null);
+              if (!draggedId || draggedId === build.id) return;
+              const ids = builds.map((b) => b.id);
+              const fromIdx = ids.indexOf(draggedId);
+              const toIdx = ids.indexOf(build.id);
+              if (fromIdx < 0 || toIdx < 0) return;
+              ids.splice(fromIdx, 1);
+              ids.splice(toIdx, 0, draggedId);
+              onReorderBuilds(ids);
+            }}
+          >
             {/* Background grid */}
             <div className="absolute inset-0 flex">
               {days.map((d) => (
@@ -471,15 +506,14 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
                     </span>
                   )}
 
-                  {/* Delete phase button (not for live if it's the only live) */}
-                  {phase.type === 'build' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removePhase(build.id, phase.id); }}
-                      className="absolute -top-1.5 -right-1.5 opacity-0 group-hover/phase:opacity-100 bg-white text-red-500 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] font-bold shadow z-30"
-                    >
-                      ✕
-                    </button>
-                  )}
+                  {/* Delete phase button — works for both build & live phases */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removePhase(build.id, phase.id); }}
+                    className="absolute -top-1.5 -right-1.5 opacity-0 group-hover/phase:opacity-100 bg-white text-red-500 rounded-full w-3.5 h-3.5 flex items-center justify-center text-[10px] font-bold shadow z-30"
+                    title={`Xoá phase "${phase.label}"`}
+                  >
+                    ✕
+                  </button>
 
                   {/* Resize handles */}
                   <ResizeHandle

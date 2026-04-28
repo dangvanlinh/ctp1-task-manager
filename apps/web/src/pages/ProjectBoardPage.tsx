@@ -338,6 +338,7 @@ export default function ProjectBoardPage() {
             [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
             reorderBuilds.mutate(newOrder);
           }}
+          onReorderBuilds={(orderedIds) => reorderBuilds.mutate(orderedIds)}
           onAddMilestone={(buildId, data) => addMilestone.mutate({ buildId, data })}
           onDeleteMilestone={(milestoneId) => deleteMilestone.mutate(milestoneId)}
           onUpdateBuild={(id, data) => updateBuild.mutate({ id, ...data })}
