@@ -54,13 +54,14 @@ model RoadmapUpdate {
 }
 
 model BacklogItem {
-  id        String   @id @default(uuid())
-  projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  text      String
-  done      Boolean  @default(false)
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assigneeId String?
+  text       String
+  done       Boolean  @default(false)
+  order      Int      @default(0)
+  createdAt  DateTime @default(now())
 }
 
 model DocLink {

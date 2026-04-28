@@ -3,6 +3,7 @@ import { apiFetch } from './client';
 export interface BacklogItemDto {
   id: string;
   projectId: string;
+  assigneeId: string | null;
   text: string;
   done: boolean;
   order: number;
@@ -13,11 +14,11 @@ export function fetchBacklog(projectId: string) {
   return apiFetch<BacklogItemDto[]>(`/backlog?projectId=${projectId}`);
 }
 
-export function createBacklog(data: { projectId: string; text: string; done?: boolean; order?: number }) {
+export function createBacklog(data: { projectId: string; text: string; assigneeId?: string | null; done?: boolean; order?: number }) {
   return apiFetch<BacklogItemDto>('/backlog', { method: 'POST', body: JSON.stringify(data) });
 }
 
-export function updateBacklog(id: string, data: { text?: string; done?: boolean; order?: number }) {
+export function updateBacklog(id: string, data: { text?: string; done?: boolean; order?: number; assigneeId?: string | null }) {
   return apiFetch<BacklogItemDto>(`/backlog/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 }
 

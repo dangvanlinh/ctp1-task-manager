@@ -20,6 +20,7 @@ backlog.get('/', allowApiToken({ projectIdFrom: 'query', key: 'projectId' }), as
 
 const createSchema = z.object({
   projectId: z.string().uuid(),
+  assigneeId: z.string().uuid().optional().nullable(),
   text: z.string().min(1),
   done: z.boolean().optional(),
   order: z.number().int().optional(),
@@ -35,6 +36,7 @@ const updateSchema = z.object({
   text: z.string().min(1).optional(),
   done: z.boolean().optional(),
   order: z.number().int().optional(),
+  assigneeId: z.string().uuid().optional().nullable(),
 });
 
 backlog.patch('/:id', rolesGuard('ADMIN', 'PM', 'MEMBER'), zValidator('json', updateSchema), async (c) => {
