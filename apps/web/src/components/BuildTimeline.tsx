@@ -45,42 +45,43 @@ const PHASE_COLORS = [
 ];
 const LIVE_COLOR = 'bg-green-500';
 
-// --- localStorage persistence for notes ---
-function getNotesKey(buildId: string) {
-  return `buildNotes-${buildId}`;
-}
+// --- Persistence: build.phases / build.notes are stored in DB now; localStorage = fallback / cache ---
+function getNotesKey(buildId: string) { return `buildNotes-${buildId}`; }
+function getPhasesKey(buildId: string) { return `devPhases-${buildId}`; }
 
-function loadNotes(buildId: string): string {
-  try {
-    return localStorage.getItem(getNotesKey(buildId)) ?? '';
-  } catch { return ''; }
-}
-
-function saveNotes(buildId: string, notes: string) {
-  try { localStorage.setItem(getNotesKey(buildId), notes); } catch { /* ignore */ }
-}
-
-// --- localStorage persistence for dev phases ---
-function getPhasesKey(buildId: string) {
-  return `devPhases-${buildId}`;
-}
-
-function loadPhases(buildId: string, todayDay: number): DevPhase[] {
-  try {
-    const raw = localStorage.getItem(getPhasesKey(buildId));
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  // Default: Build 1 (today ~ today+6) + Live (today+10 ~ today+17)
+function defaultPhases(buildId: string, todayDay: number): DevPhase[] {
   return [
     { id: `${buildId}-b1`, label: 'Build 1', startDay: todayDay, endDay: Math.min(todayDay + 6, 31), type: 'build' },
     { id: `${buildId}-live`, label: 'Live', startDay: Math.min(todayDay + 10, 31), endDay: Math.min(todayDay + 17, 31), type: 'live' },
   ];
 }
 
-function savePhases(buildId: string, phases: DevPhase[]) {
+function loadPhases(build: BuildDto, todayDay: number): DevPhase[] {
+  // 1. DB (source of truth)
+  const fromDb = Array.isArray((build as any).phases) ? (build as any).phases as DevPhase[] : null;
+  if (fromDb && fromDb.length > 0) return fromDb;
+  // 2. localStorage migration fallback
   try {
-    localStorage.setItem(getPhasesKey(buildId), JSON.stringify(phases));
+    const raw = localStorage.getItem(getPhasesKey(build.id));
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr) && arr.length > 0) return arr;
+    }
   } catch { /* ignore */ }
+  // 3. Default
+  return defaultPhases(build.id, todayDay);
+}
+
+function loadNotes(build: BuildDto): string {
+  if (typeof (build as any).notes === 'string' && (build as any).notes.length > 0) return (build as any).notes;
+  try { return localStorage.getItem(getNotesKey(build.id)) ?? ''; } catch { return ''; }
+}
+
+function savePhasesLocal(buildId: string, phases: DevPhase[]) {
+  try { localStorage.setItem(getPhasesKey(buildId), JSON.stringify(phases)); } catch { /* ignore */ }
+}
+function saveNotesLocal(buildId: string, notes: string) {
+  try { localStorage.setItem(getNotesKey(buildId), notes); } catch { /* ignore */ }
 }
 
 export default function BuildTimeline({ builds, users, month, year, dayWidth, totalDays, onCreateBuild, onDeleteBuild, onUpdateBuild, onAssignBuild, onUnassignBuild, onPhaseResize, onReorderBuild, onReorderBuilds, syncKey }: Props) {
@@ -95,11 +96,46 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
   const [assigneePopup, setAssigneePopup] = useState<string | null>(null);
   const [popupPos, setPopupPos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const [expandedBuilds, setExpandedBuilds] = useState<Set<string>>(new Set());
+  const now = new Date();
+  const todayDay = now.getMonth() + 1 === month && now.getFullYear() === year ? now.getDate() : 1;
+
   const [notesMap, setNotesMap] = useState<Record<string, string>>(() => {
     const map: Record<string, string> = {};
-    for (const b of builds) map[b.id] = loadNotes(b.id);
+    for (const b of builds) map[b.id] = loadNotes(b);
     return map;
   });
+
+  // Phase state per build — keyed by build id
+  const [phasesMap, setPhasesMap] = useState<Record<string, DevPhase[]>>(() => {
+    const map: Record<string, DevPhase[]> = {};
+    for (const b of builds) map[b.id] = loadPhases(b, todayDay);
+    return map;
+  });
+
+  // One-time migration: if a build has no phases in DB but localStorage does, push to DB
+  useEffect(() => {
+    for (const b of builds) {
+      const dbPhases = (b as any).phases as DevPhase[] | undefined;
+      if (Array.isArray(dbPhases) && dbPhases.length > 0) continue; // already in DB
+      try {
+        const raw = localStorage.getItem(getPhasesKey(b.id));
+        if (!raw) continue;
+        const local = JSON.parse(raw);
+        if (Array.isArray(local) && local.length > 0) {
+          onUpdateBuild(b.id, { phases: local });
+        }
+      } catch { /* ignore */ }
+      // Notes too
+      const dbNotes = (b as any).notes as string | undefined;
+      if (typeof dbNotes !== 'string' || dbNotes.length === 0) {
+        try {
+          const localN = localStorage.getItem(getNotesKey(b.id));
+          if (localN && localN.length > 0) onUpdateBuild(b.id, { notes: localN });
+        } catch { /* ignore */ }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [builds.map((b) => b.id).join(',')]);
 
   const toggleExpand = (buildId: string) => {
     setExpandedBuilds((prev) => {
@@ -109,55 +145,64 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
     });
   };
 
+  // Debounced save: keeps DB synced with edits without spamming during drag-resize
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const scheduleSavePhases = useCallback((buildId: string, phases: DevPhase[]) => {
+    if (saveTimers.current[buildId]) clearTimeout(saveTimers.current[buildId]);
+    saveTimers.current[buildId] = setTimeout(() => {
+      onUpdateBuild(buildId, { phases });
+    }, 400);
+  }, [onUpdateBuild]);
+  const scheduleSaveNotes = useCallback((buildId: string, notes: string) => {
+    const k = `notes-${buildId}`;
+    if (saveTimers.current[k]) clearTimeout(saveTimers.current[k]);
+    saveTimers.current[k] = setTimeout(() => {
+      onUpdateBuild(buildId, { notes });
+    }, 600);
+  }, [onUpdateBuild]);
+
   const updateNotes = useCallback((buildId: string, text: string) => {
     setNotesMap((prev) => ({ ...prev, [buildId]: text }));
-    saveNotes(buildId, text);
-  }, []);
+    saveNotesLocal(buildId, text);
+    scheduleSaveNotes(buildId, text);
+  }, [scheduleSaveNotes]);
 
-  const now = new Date();
-  const todayDay = now.getMonth() + 1 === month && now.getFullYear() === year ? now.getDate() : 1;
-
-  // Phase state per build — keyed by build id
-  const [phasesMap, setPhasesMap] = useState<Record<string, DevPhase[]>>(() => {
-    const map: Record<string, DevPhase[]> = {};
-    for (const b of builds) {
-      map[b.id] = loadPhases(b.id, todayDay);
-    }
-    return map;
-  });
-
-  // Sync when builds change (new build added)
+  // Sync when builds list changes (new build added or remote refresh)
   useEffect(() => {
     setPhasesMap((prev) => {
       const next = { ...prev };
       let changed = false;
       for (const b of builds) {
-        if (!next[b.id]) {
-          next[b.id] = loadPhases(b.id, todayDay);
+        const dbPhases = (b as any).phases as DevPhase[] | undefined;
+        if (Array.isArray(dbPhases) && dbPhases.length > 0) {
+          // Use DB version (latest from server) — but only if local doesn't have unsaved changes
+          if (!next[b.id] || JSON.stringify(next[b.id]) !== JSON.stringify(dbPhases)) {
+            // Avoid clobbering if user is actively editing — only update on first load
+            if (!next[b.id]) { next[b.id] = dbPhases; changed = true; }
+          }
+        } else if (!next[b.id]) {
+          next[b.id] = loadPhases(b, todayDay);
           changed = true;
         }
       }
       return changed ? next : prev;
     });
-    // Sync notes too
     setNotesMap((prev) => {
       const next = { ...prev };
       let changed = false;
       for (const b of builds) {
-        if (!(b.id in next)) { next[b.id] = loadNotes(b.id); changed = true; }
+        if (!(b.id in next)) { next[b.id] = loadNotes(b); changed = true; }
       }
       return changed ? next : prev;
     });
   }, [builds, todayDay]);
 
-  // Reload phases from localStorage when external sync happens (task dates changed)
+  // Reload phases when external sync happens (task dates changed)
   useEffect(() => {
     if (syncKey && syncKey > 0) {
-      setPhasesMap((prev) => {
+      setPhasesMap(() => {
         const next: Record<string, DevPhase[]> = {};
-        for (const b of builds) {
-          next[b.id] = loadPhases(b.id, todayDay);
-        }
+        for (const b of builds) next[b.id] = loadPhases(b, todayDay);
         return next;
       });
     }
@@ -167,10 +212,11 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
     setPhasesMap((prev) => {
       const old = prev[buildId] ?? [];
       const next = updater(old);
-      savePhases(buildId, next);
+      savePhasesLocal(buildId, next);
+      scheduleSavePhases(buildId, next);
       return { ...prev, [buildId]: next };
     });
-  }, []);
+  }, [scheduleSavePhases]);
 
   const daysInMonth = getDaysInMonth(month, year);
   const days = Array.from({ length: totalDays }, (_, i) => i + 1);

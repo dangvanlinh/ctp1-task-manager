@@ -76,6 +76,9 @@ export interface BuildDto {
   startDate: string | null;
   liveDate: string | null;
   endDate: string | null;
+  order?: number;
+  phases?: any[];
+  notes?: string | null;
   createdAt: string;
   milestones?: BuildMilestoneDto[];
   assignees?: BuildAssigneeDto[];

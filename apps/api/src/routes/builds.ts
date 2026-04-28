@@ -128,6 +128,8 @@ const updateBuildSchema = z.object({
   liveDate: z.string().optional().nullable(),
   endDate: z.string().optional().nullable(),
   assigneeIds: z.array(z.string().uuid()).optional(),
+  phases: z.array(z.any()).optional(),
+  notes: z.string().optional().nullable(),
   milestones: z.array(z.object({
     id: z.string().uuid().optional(),
     name: z.string().min(1),

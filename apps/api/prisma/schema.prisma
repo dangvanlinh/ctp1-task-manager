@@ -140,6 +140,8 @@ model Build {
   liveDate   DateTime?
   endDate    DateTime?
   order      Int              @default(0)
+  phases     Json             @default("[]")
+  notes      String?
   createdAt  DateTime         @default(now())
   tasks      Task[]
   milestones BuildMilestone[]

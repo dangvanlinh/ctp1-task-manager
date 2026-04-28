@@ -3,6 +3,7 @@ import EventBar from './EventBar';
 import BuildTimeline from './BuildTimeline';
 import type { BuildDto, UserDto } from '@ctp1/shared';
 import { fetchWeeklyEvents, saveWeeklyEvents } from '../api/weeklyEvents';
+import { getWeeksInMonth } from '../utils/weekUtils';
 
 interface EventVariant {
   id: string;
@@ -84,10 +85,36 @@ function getVariantIndex(week: number): 0 | 1 {
   return week % 2 === 1 ? 0 : 1;
 }
 
-// Generate default weekly event data for a month
-// Returns empty array — users add events manually instead of pre-populating defaults.
-function generateDefaultEventWeeks(_month: number, _year: number): EventWeek[] {
-  return [];
+// Find the most recent Thursday on or before a given day.
+function getThursdayBefore(day: number, month: number, year: number): number {
+  for (let d = day; d >= 1; d--) {
+    if (new Date(year, month - 1, d).getDay() === 4) return d; // Thursday = 4
+  }
+  return Math.max(1, day - 3);
+}
+
+// Generate default weekly events for a month based on calendar weeks.
+// One event per type per calendar week, build = Thursday before liveStart.
+function generateDefaultEventWeeks(month: number, year: number): EventWeek[] {
+  const weeks = getWeeksInMonth(month, year);
+  const result: EventWeek[] = [];
+  for (const w of weeks) {
+    for (const evt of DEFAULT_EVENTS) {
+      const vi = getVariantIndex(w.week);
+      const variant = evt.variants[vi];
+      const buildDay = getThursdayBefore(w.startDay, month, year);
+      result.push({
+        eventId: evt.id,
+        week: w.week,
+        buildStart: buildDay,
+        buildEnd: buildDay,
+        liveStart: w.startDay,
+        liveEnd: w.endDay,
+        label: variant.name,
+      });
+    }
+  }
+  return result;
 }
 
 function getStorageKey(projectId: string, month: number, year: number) {
@@ -368,7 +395,8 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
   const todayOffset = isCurrentMonth ? (todayDay - 1) * dayWidth + dayWidth / 2 : -1;
 
   // Group by week
-  const weeks = Array.from(new Set(eventWeeks.map((ew) => ew.week))).sort((a, b) => a - b);
+  // Sort weeks descending (latest week at top, earliest at bottom) — events flow upward (phong thủy 'đi lên')
+  const weeks = Array.from(new Set(eventWeeks.map((ew) => ew.week))).sort((a, b) => b - a);
 
   return (
     <div className="bg-white border rounded-lg mb-4 mx-auto relative">
