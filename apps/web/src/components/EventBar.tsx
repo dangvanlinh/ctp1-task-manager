@@ -98,11 +98,11 @@ export default function EventBar({ left, width, color, label, height, top, dayWi
             if (e.key === 'Escape') { setEditValue(label); setEditing(false); }
           }}
           onBlur={handleFinishEdit}
-          className="w-full h-full bg-transparent text-[8px] text-black font-medium text-center outline-none px-0.5"
+          className="w-full h-full bg-transparent text-[12px] text-black font-medium text-center outline-none px-0.5"
           onClick={(e) => e.stopPropagation()}
         />
       ) : (
-        <span className="text-[8px] text-black font-medium truncate px-1 pointer-events-none">{label}</span>
+        <span className="text-[12px] text-black font-medium truncate px-1 pointer-events-none">{label}</span>
       )}
       {/* Left resize handle */}
       <div
