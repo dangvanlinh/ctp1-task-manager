@@ -1,29 +1,30 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchRoadmap, createRoadmap, updateRoadmap, deleteRoadmap, type RoadmapUpdateDto } from '../api/roadmap';
 
 interface Props {
   projectId: string;
   canEdit?: boolean;
-  /** Number of months to show, starting from current month. Default 3. */
-  monthsAhead?: number;
 }
 
-// Colors as semantic accent — paired pastel bg + saturated bar.
 const COLOR_PALETTE: Record<string, { bar: string; chipBg: string; chipText: string; label: string }> = {
-  'bg-blue-500':   { bar: 'bg-blue-500',   chipBg: 'bg-blue-50',    chipText: 'text-blue-700',    label: 'Blue' },
-  'bg-green-500':  { bar: 'bg-emerald-500',chipBg: 'bg-emerald-50', chipText: 'text-emerald-700', label: 'Green' },
-  'bg-purple-500': { bar: 'bg-purple-500', chipBg: 'bg-purple-50',  chipText: 'text-purple-700',  label: 'Purple' },
-  'bg-orange-500': { bar: 'bg-orange-500', chipBg: 'bg-orange-50',  chipText: 'text-orange-700',  label: 'Orange' },
-  'bg-red-500':    { bar: 'bg-rose-500',   chipBg: 'bg-rose-50',    chipText: 'text-rose-700',    label: 'Red' },
-  'bg-yellow-500': { bar: 'bg-amber-500',  chipBg: 'bg-amber-50',   chipText: 'text-amber-700',   label: 'Yellow' },
-  'bg-pink-500':   { bar: 'bg-pink-500',   chipBg: 'bg-pink-50',    chipText: 'text-pink-700',    label: 'Pink' },
-  'bg-gray-500':   { bar: 'bg-slate-500',  chipBg: 'bg-slate-50',   chipText: 'text-slate-700',   label: 'Gray' },
+  'bg-blue-500':   { bar: 'bg-blue-500',    chipBg: 'bg-blue-50',    chipText: 'text-blue-700',    label: 'Blue' },
+  'bg-green-500':  { bar: 'bg-emerald-500', chipBg: 'bg-emerald-50', chipText: 'text-emerald-700', label: 'Green' },
+  'bg-purple-500': { bar: 'bg-purple-500',  chipBg: 'bg-purple-50',  chipText: 'text-purple-700',  label: 'Purple' },
+  'bg-orange-500': { bar: 'bg-orange-500',  chipBg: 'bg-orange-50',  chipText: 'text-orange-700',  label: 'Orange' },
+  'bg-red-500':    { bar: 'bg-rose-500',    chipBg: 'bg-rose-50',    chipText: 'text-rose-700',    label: 'Red' },
+  'bg-yellow-500': { bar: 'bg-amber-500',   chipBg: 'bg-amber-50',   chipText: 'text-amber-700',   label: 'Yellow' },
+  'bg-pink-500':   { bar: 'bg-pink-500',    chipBg: 'bg-pink-50',    chipText: 'text-pink-700',    label: 'Pink' },
+  'bg-gray-500':   { bar: 'bg-slate-500',   chipBg: 'bg-slate-50',   chipText: 'text-slate-700',   label: 'Gray' },
 };
 const COLOR_KEYS = Object.keys(COLOR_PALETTE);
 const palette = (key: string) => COLOR_PALETTE[key] ?? COLOR_PALETTE['bg-blue-500'];
 
-const MONTH_NAMES = ['Tháng 1','Tháng 2','Tháng 3','Tháng 4','Tháng 5','Tháng 6','Tháng 7','Tháng 8','Tháng 9','Tháng 10','Tháng 11','Tháng 12'];
+const MONTH_SHORT = ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'];
+
+const MONTH_WIDTH = 110;
+const ROW_HEIGHT = 36;
+const HEADER_HEIGHT = 32;
 
 function firstOfMonth(y: number, m: number) { return new Date(y, m - 1, 1); }
 function lastOfMonth(y: number, m: number)  { return new Date(y, m, 0); }
@@ -31,8 +32,11 @@ function fmtIsoDate(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }: Props) {
+export default function RoadmapTimeline({ projectId, canEdit }: Props) {
   const qc = useQueryClient();
+  const today = useMemo(() => new Date(), []);
+  const [year, setYear] = useState(today.getFullYear());
+
   const { data: items = [] } = useQuery({
     queryKey: ['roadmap', projectId],
     queryFn: () => fetchRoadmap(projectId),
@@ -40,40 +44,50 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
   });
 
   const [collapsed, setCollapsed] = useState(false);
-  const [editing, setEditing] = useState<RoadmapUpdateDto | { kind: 'new'; month: number; year: number } | null>(null);
-  const [draft, setDraft] = useState({ name: '', description: '', color: 'bg-blue-500', month: 0, year: 0 });
-  const [dragOverKey, setDragOverKey] = useState<string | null>(null);
+  const [editing, setEditing] = useState<RoadmapUpdateDto | { kind: 'new'; startMonth: number } | null>(null);
+  const [draft, setDraft] = useState({
+    name: '', description: '', color: 'bg-blue-500',
+    startMonth: 1, endMonth: 1, year: year,
+  });
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [hoverMonth, setHoverMonth] = useState<number | null>(null);
 
-  const today = useMemo(() => new Date(), []);
-  const months = useMemo(() => {
-    const arr: { month: number; year: number; key: string; label: string; offset: number }[] = [];
-    const labels = ['Now', 'Next', 'Later', '+3', '+4', '+5'];
-    for (let i = 0; i < monthsAhead; i++) {
-      const d = new Date(today.getFullYear(), today.getMonth() + i, 1);
-      arr.push({
-        month: d.getMonth() + 1,
-        year: d.getFullYear(),
-        key: `${d.getFullYear()}-${d.getMonth() + 1}`,
-        label: labels[i] ?? `+${i}`,
-        offset: i,
-      });
-    }
-    return arr;
-  }, [today, monthsAhead]);
+  // Filter items overlapping with `year`
+  const yearItems = useMemo(() => {
+    return items.filter((it) => {
+      const s = new Date(it.startDate);
+      const e = new Date(it.endDate);
+      // overlaps the calendar year
+      return s.getFullYear() <= year && e.getFullYear() >= year;
+    });
+  }, [items, year]);
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, RoadmapUpdateDto[]>();
-    months.forEach((m) => map.set(m.key, []));
-    for (const item of items) {
-      const d = new Date(item.startDate);
-      const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
-      if (map.has(key)) map.get(key)!.push(item);
-    }
-    map.forEach((list) =>
-      list.sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt)),
-    );
-    return map;
-  }, [items, months]);
+  // Layout: assign each item to a row (avoid overlaps stacking)
+  // Simple greedy: sort by startMonth, place into first row whose end < this start.
+  const itemsLaidOut = useMemo(() => {
+    const sorted = [...yearItems].sort((a, b) => {
+      const sa = Math.max(1, monthInYear(a.startDate, year));
+      const sb = Math.max(1, monthInYear(b.startDate, year));
+      return sa - sb || a.order - b.order;
+    });
+    const rowsLastEnd: number[] = []; // last endMonth for each row
+    return sorted.map((item) => {
+      const sM = Math.max(1, monthInYear(item.startDate, year));
+      const eM = Math.min(12, monthInYear(item.endDate, year));
+      let row = -1;
+      for (let r = 0; r < rowsLastEnd.length; r++) {
+        if (rowsLastEnd[r] < sM) { row = r; break; }
+      }
+      if (row === -1) {
+        rowsLastEnd.push(eM);
+        row = rowsLastEnd.length - 1;
+      } else {
+        rowsLastEnd[row] = eM;
+      }
+      return { item, sM, eM, row };
+    });
+  }, [yearItems, year]);
+  const totalRows = Math.max(2, itemsLaidOut.reduce((max, l) => Math.max(max, l.row + 1), 0));
 
   const createMut = useMutation({
     mutationFn: createRoadmap,
@@ -88,26 +102,30 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
     onSuccess: () => qc.invalidateQueries({ queryKey: ['roadmap', projectId] }),
   });
 
-  const openNew = (m: number, y: number) => {
-    setDraft({ name: '', description: '', color: 'bg-blue-500', month: m, year: y });
-    setEditing({ kind: 'new', month: m, year: y });
+  const openNew = (startMonth: number) => {
+    setDraft({ name: '', description: '', color: 'bg-blue-500', startMonth, endMonth: startMonth, year });
+    setEditing({ kind: 'new', startMonth });
   };
   const openEdit = (item: RoadmapUpdateDto) => {
-    const d = new Date(item.startDate);
+    const s = new Date(item.startDate);
+    const e = new Date(item.endDate);
     setDraft({
       name: item.name,
       description: item.description ?? '',
       color: item.color,
-      month: d.getMonth() + 1,
-      year: d.getFullYear(),
+      startMonth: s.getMonth() + 1,
+      endMonth: e.getMonth() + 1,
+      year: s.getFullYear(),
     });
     setEditing(item);
   };
   const closeEdit = () => setEditing(null);
   const submit = () => {
     if (!draft.name.trim()) return;
-    const startDate = fmtIsoDate(firstOfMonth(draft.year, draft.month));
-    const endDate = fmtIsoDate(lastOfMonth(draft.year, draft.month));
+    const sm = Math.min(draft.startMonth, draft.endMonth);
+    const em = Math.max(draft.startMonth, draft.endMonth);
+    const startDate = fmtIsoDate(firstOfMonth(draft.year, sm));
+    const endDate = fmtIsoDate(lastOfMonth(draft.year, em));
     const payload = {
       name: draft.name.trim(),
       description: draft.description.trim() || null,
@@ -116,7 +134,7 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
       endDate,
     };
     if (editing && 'kind' in editing && editing.kind === 'new') {
-      createMut.mutate({ projectId, ...payload, order: (grouped.get(`${draft.year}-${draft.month}`)?.length ?? 0) }, { onSuccess: closeEdit });
+      createMut.mutate({ projectId, ...payload, order: yearItems.length }, { onSuccess: closeEdit });
     } else if (editing && 'id' in editing) {
       updMut.mutate({ id: editing.id, data: payload }, { onSuccess: closeEdit });
     }
@@ -129,25 +147,23 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
     }
   };
 
-  const moveItemToMonth = (id: string, m: number, y: number) => {
+  // Drag bar to a different month (preserving span length)
+  const moveItem = (item: RoadmapUpdateDto, targetStartMonth: number) => {
+    const s = new Date(item.startDate);
+    const e = new Date(item.endDate);
+    const span = (e.getMonth() - s.getMonth()) + 12 * (e.getFullYear() - s.getFullYear());
+    const newStart = firstOfMonth(year, targetStartMonth);
+    const newEnd = lastOfMonth(year, Math.min(12, targetStartMonth + span));
     updMut.mutate({
-      id,
-      data: {
-        startDate: fmtIsoDate(firstOfMonth(y, m)),
-        endDate: fmtIsoDate(lastOfMonth(y, m)),
-      },
+      id: item.id,
+      data: { startDate: fmtIsoDate(newStart), endDate: fmtIsoDate(newEnd) },
     });
   };
-  const reorderInMonth = (monthKey: string, draggedId: string, targetId: string) => {
-    const list = grouped.get(monthKey) || [];
-    const ids = list.map((x) => x.id);
-    const fromIdx = ids.indexOf(draggedId);
-    const toIdx = ids.indexOf(targetId);
-    if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return;
-    ids.splice(fromIdx, 1);
-    ids.splice(toIdx, 0, draggedId);
-    ids.forEach((id, i) => updMut.mutate({ id, data: { order: i } }));
-  };
+
+  const isCurrentYear = year === today.getFullYear();
+  const todayLeft = isCurrentYear
+    ? (today.getMonth() * MONTH_WIDTH) + (((today.getDate() - 1) / daysInMonth(year, today.getMonth() + 1)) * MONTH_WIDTH)
+    : -1;
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden">
@@ -156,114 +172,148 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
         <button onClick={() => setCollapsed(!collapsed)} className="text-gray-400 hover:text-gray-600 text-sm">
           {collapsed ? '▶' : '▼'}
         </button>
-        <div className="flex items-center gap-2">
-          <span className="text-base font-semibold text-gray-900">Roadmap</span>
-          <span className="text-xs text-gray-400">·</span>
-          <span className="text-xs text-gray-500">{monthsAhead} tháng tới</span>
+        <span className="text-base font-semibold text-gray-900">Roadmap</span>
+        <div className="flex items-center gap-1 ml-3">
+          <button
+            onClick={() => setYear((y) => y - 1)}
+            className="text-gray-400 hover:text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-100"
+          >
+            ◀
+          </button>
+          <span className="font-semibold text-sm text-gray-700 w-12 text-center">{year}</span>
+          <button
+            onClick={() => setYear((y) => y + 1)}
+            className="text-gray-400 hover:text-gray-700 px-1.5 py-0.5 rounded hover:bg-gray-100"
+          >
+            ▶
+          </button>
+          {!isCurrentYear && (
+            <button
+              onClick={() => setYear(today.getFullYear())}
+              className="ml-1 text-[11px] text-indigo-600 hover:text-indigo-800"
+            >
+              Hôm nay
+            </button>
+          )}
         </div>
-        <span className="ml-auto text-xs text-gray-400">{items.length} updates</span>
+        <span className="ml-auto text-xs text-gray-400">{yearItems.length} updates</span>
       </div>
 
       {!collapsed && (
-        <div className="grid gap-4 p-4 bg-gray-50/40" style={{ gridTemplateColumns: `repeat(${months.length}, minmax(0, 1fr))` }}>
-          {months.map(({ month, year, key, label, offset }) => {
-            const list = grouped.get(key) || [];
-            const isCurrent = offset === 0;
-            const isDragOver = dragOverKey === key;
-            return (
-              <div
-                key={key}
-                className={`flex flex-col rounded-xl transition-colors ${isDragOver ? 'bg-indigo-50/50 ring-2 ring-indigo-300' : ''}`}
-                onDragOver={(e) => { e.preventDefault(); setDragOverKey(key); }}
-                onDragLeave={() => setDragOverKey(null)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOverKey(null);
-                  const draggedId = e.dataTransfer.getData('text/roadmap-id');
-                  const sourceKey = e.dataTransfer.getData('text/source-key');
-                  if (!draggedId) return;
-                  if (sourceKey !== key) moveItemToMonth(draggedId, month, year);
-                }}
-              >
-                {/* Column header */}
-                <div className="flex items-center justify-between px-2 mb-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className={`text-[11px] font-semibold uppercase tracking-wider ${isCurrent ? 'text-indigo-600' : 'text-gray-500'}`}>
-                      {label}
-                    </span>
-                    <span className="text-sm font-medium text-gray-700">{MONTH_NAMES[month - 1]}</span>
-                    <span className="text-xs text-gray-400">{year}</span>
+        <div className="overflow-x-auto bg-gray-50/40">
+          <div style={{ width: 12 * MONTH_WIDTH, minWidth: '100%' }}>
+            {/* Month header */}
+            <div className="flex border-b border-gray-200 bg-white" style={{ height: HEADER_HEIGHT }}>
+              {MONTH_SHORT.map((label, i) => {
+                const m = i + 1;
+                const isCurrentMonth = isCurrentYear && m === today.getMonth() + 1;
+                return (
+                  <div
+                    key={i}
+                    className={`text-center text-xs font-semibold border-r border-gray-200 flex items-center justify-center ${
+                      isCurrentMonth ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600'
+                    }`}
+                    style={{ width: MONTH_WIDTH, minWidth: MONTH_WIDTH }}
+                  >
+                    {label}
                   </div>
-                  <span className="text-[11px] text-gray-400 font-medium bg-white px-1.5 py-0.5 rounded border border-gray-200">
-                    {list.length}
-                  </span>
-                </div>
+                );
+              })}
+            </div>
 
-                {/* Cards */}
-                <div className="flex flex-col gap-2 min-h-[120px]">
-                  {list.map((item) => {
-                    const c = palette(item.color);
-                    return (
-                      <div
-                        key={item.id}
-                        draggable={canEdit}
-                        onDragStart={(e) => {
-                          e.dataTransfer.setData('text/roadmap-id', item.id);
-                          e.dataTransfer.setData('text/source-key', key);
-                          e.dataTransfer.effectAllowed = 'move';
-                        }}
-                        onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setDragOverKey(null);
-                          const draggedId = e.dataTransfer.getData('text/roadmap-id');
-                          const sourceKey = e.dataTransfer.getData('text/source-key');
-                          if (!draggedId || draggedId === item.id) return;
-                          if (sourceKey === key) reorderInMonth(key, draggedId, item.id);
-                          else moveItemToMonth(draggedId, month, year);
-                        }}
-                        onClick={() => canEdit && openEdit(item)}
-                        className="group relative bg-white border border-gray-200 rounded-lg p-3 pl-4 cursor-grab active:cursor-grabbing hover:border-gray-300 hover:shadow-md transition-all"
-                      >
-                        {/* Color accent bar */}
-                        <div className={`absolute left-0 top-2 bottom-2 w-1 ${c.bar} rounded-r`} />
-                        <div className="space-y-1.5">
-                          <div className="flex items-start justify-between gap-2">
-                            <h4 className="text-sm font-medium text-gray-900 leading-tight flex-1">{item.name}</h4>
-                          </div>
-                          {item.description && (
-                            <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{item.description}</p>
-                          )}
-                          <div className="flex items-center gap-1.5 pt-0.5">
-                            <span className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded ${c.chipBg} ${c.chipText}`}>
-                              ●  {c.label}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {/* Add button (always shown for canEdit) */}
-                  {canEdit && (
-                    <button
-                      onClick={() => openNew(month, year)}
-                      className="text-xs text-gray-400 hover:text-indigo-600 hover:bg-white rounded-lg px-3 py-2.5 border border-dashed border-gray-300 hover:border-indigo-300 transition-colors flex items-center justify-center gap-1.5"
+            {/* Grid body */}
+            <div className="relative" style={{ height: totalRows * ROW_HEIGHT + 8 }}>
+              {/* Vertical month grid lines (clickable to add) */}
+              <div className="absolute inset-0 flex">
+                {MONTH_SHORT.map((_, i) => {
+                  const m = i + 1;
+                  const isCurrentMonth = isCurrentYear && m === today.getMonth() + 1;
+                  const isHover = hoverMonth === m;
+                  return (
+                    <div
+                      key={i}
+                      className={`border-r border-gray-200 h-full transition-colors ${
+                        isCurrentMonth ? 'bg-indigo-50/30' : ''
+                      } ${isHover && draggingId ? 'bg-indigo-100/40' : ''} ${
+                        canEdit ? 'cursor-pointer hover:bg-gray-100/40 group/col' : ''
+                      }`}
+                      style={{ width: MONTH_WIDTH, minWidth: MONTH_WIDTH }}
+                      onClick={(e) => {
+                        if (!canEdit) return;
+                        // Only fire if clicked on empty area (not on a card via stopPropagation)
+                        if (e.target === e.currentTarget) openNew(m);
+                      }}
+                      onDragOver={(e) => {
+                        if (!draggingId) return;
+                        e.preventDefault();
+                        setHoverMonth(m);
+                      }}
+                      onDragLeave={() => setHoverMonth(null)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const id = e.dataTransfer.getData('text/roadmap-id');
+                        if (!id) return;
+                        const item = items.find((it) => it.id === id);
+                        if (item) moveItem(item, m);
+                        setDraggingId(null);
+                        setHoverMonth(null);
+                      }}
                     >
-                      <span className="text-base leading-none">+</span>
-                      <span>Thêm update</span>
-                    </button>
-                  )}
-
-                  {/* Empty hint */}
-                  {list.length === 0 && !canEdit && (
-                    <div className="text-xs text-gray-400 text-center py-6 italic">Chưa có gì</div>
-                  )}
-                </div>
+                      {canEdit && (
+                        <div className="opacity-0 group-hover/col:opacity-100 h-full flex items-center justify-center text-gray-400 text-lg pointer-events-none transition-opacity">
+                          +
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
+
+              {/* Today line */}
+              {todayLeft >= 0 && (
+                <div
+                  className="absolute top-0 bottom-0 w-0.5 bg-indigo-500 z-10 pointer-events-none"
+                  style={{ left: todayLeft }}
+                  title="Hôm nay"
+                />
+              )}
+
+              {/* Item bars */}
+              {itemsLaidOut.map(({ item, sM, eM, row }) => {
+                const c = palette(item.color);
+                const left = (sM - 1) * MONTH_WIDTH + 4;
+                const width = (eM - sM + 1) * MONTH_WIDTH - 8;
+                const top = row * ROW_HEIGHT + 4;
+                return (
+                  <div
+                    key={item.id}
+                    draggable={canEdit}
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('text/roadmap-id', item.id);
+                      e.dataTransfer.effectAllowed = 'move';
+                      setDraggingId(item.id);
+                    }}
+                    onDragEnd={() => { setDraggingId(null); setHoverMonth(null); }}
+                    onClick={(e) => { e.stopPropagation(); if (canEdit) openEdit(item); }}
+                    className={`absolute ${c.bar} text-white rounded-md shadow-sm hover:shadow-md cursor-pointer flex items-center px-2.5 transition-all ${
+                      draggingId === item.id ? 'opacity-50' : 'opacity-95 hover:opacity-100'
+                    }`}
+                    style={{ left, width, top, height: ROW_HEIGHT - 8 }}
+                    title={`${item.name}${item.description ? ' — ' + item.description : ''}`}
+                  >
+                    <span className="text-xs font-medium truncate">{item.name}</span>
+                  </div>
+                );
+              })}
+
+              {/* Empty state */}
+              {yearItems.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 italic pointer-events-none">
+                  Chưa có update nào trong năm {year}. {canEdit ? 'Click vào ô tháng để thêm.' : ''}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -271,7 +321,6 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
       {editing && canEdit && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm" onClick={closeEdit}>
           <div className="bg-white rounded-xl w-[480px] max-w-full shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            {/* Modal header */}
             <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">
                 {editing && 'kind' in editing ? 'Thêm roadmap update' : 'Sửa roadmap update'}
@@ -296,26 +345,40 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
                   value={draft.description}
                   onChange={(e) => setDraft((p) => ({ ...p, description: e.target.value }))}
                   rows={3}
-                  placeholder="Mô tả ngắn về update này (optional)"
+                  placeholder="Mô tả ngắn (optional)"
                   className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition resize-none"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Tháng triển khai</label>
-                <select
-                  value={`${draft.year}-${draft.month}`}
-                  onChange={(e) => {
-                    const [y, m] = e.target.value.split('-').map(Number);
-                    setDraft((p) => ({ ...p, month: m, year: y }));
-                  }}
-                  className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition bg-white"
-                >
-                  {months.map((opt) => (
-                    <option key={opt.key} value={opt.key}>
-                      {opt.label} · {MONTH_NAMES[opt.month - 1]}/{opt.year}
-                    </option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Năm</label>
+                  <input
+                    type="number"
+                    value={draft.year}
+                    onChange={(e) => setDraft((p) => ({ ...p, year: parseInt(e.target.value) || p.year }))}
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Từ tháng</label>
+                  <select
+                    value={draft.startMonth}
+                    onChange={(e) => setDraft((p) => ({ ...p, startMonth: parseInt(e.target.value) }))}
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 bg-white"
+                  >
+                    {MONTH_SHORT.map((label, i) => <option key={i} value={i + 1}>{label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1.5">Đến tháng</label>
+                  <select
+                    value={draft.endMonth}
+                    onChange={(e) => setDraft((p) => ({ ...p, endMonth: parseInt(e.target.value) }))}
+                    className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2.5 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 bg-white"
+                  >
+                    {MONTH_SHORT.map((label, i) => <option key={i} value={i + 1}>{label}</option>)}
+                  </select>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Màu tag</label>
@@ -338,7 +401,6 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
               </div>
             </div>
 
-            {/* Modal footer */}
             <div className="px-5 py-3 border-t border-gray-100 bg-gray-50 flex items-center gap-2">
               {editing && 'id' in editing && (
                 <button onClick={handleDelete} className="text-sm text-rose-600 hover:bg-rose-50 px-3 py-1.5 rounded-md">
@@ -363,4 +425,16 @@ export default function RoadmapTimeline({ projectId, canEdit, monthsAhead = 3 }:
       )}
     </div>
   );
+}
+
+// ----- helpers -----
+function monthInYear(iso: string, year: number): number {
+  const d = new Date(iso);
+  if (d.getFullYear() < year) return 1;
+  if (d.getFullYear() > year) return 12;
+  return d.getMonth() + 1;
+}
+
+function daysInMonth(year: number, month: number): number {
+  return new Date(year, month, 0).getDate();
 }

@@ -312,7 +312,7 @@ export default function ProjectBoardPage() {
         {canEdit && <button onClick={handleAddTaskGeneral} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">+ Thêm Task</button>}
       </div>
       <div className="mt-4">
-        <RoadmapTimeline projectId={projectId!} canEdit={canEdit} monthsAhead={3} />
+        <RoadmapTimeline projectId={projectId!} canEdit={canEdit} />
         <WeeklyEventTimeline
           projectId={projectId!}
           month={month}
