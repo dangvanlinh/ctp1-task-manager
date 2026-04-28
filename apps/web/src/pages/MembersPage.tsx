@@ -2,6 +2,12 @@ import { useState } from 'react';
 import { useUsers, useCreateUser, useUpdateUser, useDeleteUser, useResetUserPassword } from '../hooks/useUsers';
 import { useAuthStore } from '../stores/authStore';
 
+// Convert "ThaoDTV" → "thaodtv@vng.com.vn"
+function defaultSso(name: string): string {
+  const slug = name.trim().toLowerCase().replace(/\s+/g, '');
+  return slug ? `${slug}@vng.com.vn` : '';
+}
+
 export default function MembersPage() {
   const { data: users = [], isLoading } = useUsers();
   const createUser = useCreateUser();
@@ -12,26 +18,26 @@ export default function MembersPage() {
 
   const [showForm, setShowForm] = useState(false);
   const [newName, setNewName] = useState('');
-  const [newEmail, setNewEmail] = useState('');
   const [newSsoEmail, setNewSsoEmail] = useState('');
   const [newRole, setNewRole] = useState('MEMBER');
   const [newPosition, setNewPosition] = useState('DEV');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
-  const [editEmail, setEditEmail] = useState('');
   const [editSsoEmail, setEditSsoEmail] = useState('');
   const [editRole, setEditRole] = useState('');
   const [editPosition, setEditPosition] = useState('');
 
   const handleCreate = () => {
     if (!newName.trim()) return;
-    createUser.mutate({ email: newEmail.trim() || undefined, ssoEmail: newSsoEmail.trim() || null, name: newName.trim(), role: newRole, position: newPosition } as any, {
-      onSuccess: () => { setNewName(''); setNewEmail(''); setNewSsoEmail(''); setNewRole('MEMBER'); setNewPosition('DEV'); setShowForm(false); },
+    const sso = newSsoEmail.trim() || defaultSso(newName);
+    createUser.mutate({ ssoEmail: sso || null, name: newName.trim(), role: newRole, position: newPosition } as any, {
+      onSuccess: () => { setNewName(''); setNewSsoEmail(''); setNewRole('MEMBER'); setNewPosition('DEV'); setShowForm(false); },
     });
   };
 
   const handleUpdate = (id: string) => {
-    updateUser.mutate({ id, name: editName, email: editEmail, ssoEmail: editSsoEmail.trim() || null, role: editRole, position: editPosition } as any, {
+    const sso = editSsoEmail.trim() || defaultSso(editName);
+    updateUser.mutate({ id, name: editName, ssoEmail: sso || null, role: editRole, position: editPosition } as any, {
       onSuccess: () => setEditingId(null),
     });
   };
@@ -39,7 +45,6 @@ export default function MembersPage() {
   const startEdit = (user: { id: string; name: string; email: string; ssoEmail?: string | null; role: string; position: string }) => {
     setEditingId(user.id);
     setEditName(user.name);
-    setEditEmail(user.email);
     setEditSsoEmail(user.ssoEmail || '');
     setEditRole(user.role);
     setEditPosition(user.position);
@@ -80,20 +85,21 @@ export default function MembersPage() {
           <div className="flex items-center gap-3">
             <input
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                setNewName(v);
+                // Auto-fill SSO email if user hasn't manually edited it
+                if (!newSsoEmail || newSsoEmail === defaultSso(newName)) {
+                  setNewSsoEmail(defaultSso(v));
+                }
+              }}
               placeholder="Tên hiển thị"
-              className="flex-1 text-sm border rounded px-3 py-2 outline-none focus:border-blue-400"
-            />
-            <input
-              value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
-              placeholder="Email (tùy chọn)"
               className="flex-1 text-sm border rounded px-3 py-2 outline-none focus:border-blue-400"
             />
             <input
               value={newSsoEmail}
               onChange={(e) => setNewSsoEmail(e.target.value)}
-              placeholder="SSO email (VD: abc@vng.com.vn)"
+              placeholder="SSO email @vng.com.vn"
               className="flex-1 text-sm border rounded px-3 py-2 outline-none focus:border-blue-400"
             />
             <select
@@ -138,7 +144,6 @@ export default function MembersPage() {
           <thead className="bg-gray-50 border-b">
             <tr>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Tên</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-600">Email</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">SSO Email</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
               <th className="text-left px-4 py-3 font-medium text-gray-600">Position</th>
@@ -151,10 +156,17 @@ export default function MembersPage() {
                 {editingId === user.id ? (
                   <>
                     <td className="px-4 py-2">
-                      <input value={editName} onChange={(e) => setEditName(e.target.value)} className="text-sm border rounded px-2 py-1 w-full outline-none focus:border-blue-400" />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="text-sm border rounded px-2 py-1 w-full outline-none focus:border-blue-400" />
+                      <input
+                        value={editName}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setEditName(v);
+                          if (!editSsoEmail || editSsoEmail === defaultSso(editName)) {
+                            setEditSsoEmail(defaultSso(v));
+                          }
+                        }}
+                        className="text-sm border rounded px-2 py-1 w-full outline-none focus:border-blue-400"
+                      />
                     </td>
                     <td className="px-4 py-2">
                       <input value={editSsoEmail} onChange={(e) => setEditSsoEmail(e.target.value)} placeholder="abc@vng.com.vn" className="text-sm border rounded px-2 py-1 w-full outline-none focus:border-blue-400" />
@@ -182,8 +194,7 @@ export default function MembersPage() {
                 ) : (
                   <>
                     <td className="px-4 py-3 font-medium text-gray-800">{user.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{user.email}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{(user as any).ssoEmail || <span className="text-gray-300 italic">chưa set</span>}</td>
+                    <td className="px-4 py-3 text-gray-600">{(user as any).ssoEmail || <span className="text-gray-300 italic">chưa set</span>}</td>
                     <td className="px-4 py-3">
                       <span className={`text-xs px-2 py-0.5 rounded font-medium ${roleColor(user.role)}`}>{user.role}</span>
                     </td>
