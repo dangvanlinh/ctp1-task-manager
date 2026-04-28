@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import MonthWeekSelector from '../components/MonthWeekSelector';
 import WeeklyEventTimeline from '../components/WeeklyEventTimeline';
 import RoadmapTimeline from '../components/RoadmapTimeline';
 import TreeTable from '../components/TreeTable';
@@ -298,20 +297,18 @@ export default function ProjectBoardPage() {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between">
-        <MonthWeekSelector
+      <div className="mt-0">
+        <RoadmapTimeline
+          projectId={projectId!}
+          canEdit={canEdit}
           month={month}
           year={year}
           onChangeMonth={(m, y) => { setMonth(m); setYear(y); }}
           revenues={monthlyRevenues}
-          canEdit={canEdit}
           onSaveRevenue={handleSaveRevenue}
           kpi={yearlyKpi ? Number(yearlyKpi.amount) : 0}
           onSaveKpi={handleSaveKpi}
         />
-      </div>
-      <div className="mt-4">
-        <RoadmapTimeline projectId={projectId!} canEdit={canEdit} />
         <WeeklyEventTimeline
           projectId={projectId!}
           month={month}
