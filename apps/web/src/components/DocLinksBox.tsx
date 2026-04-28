@@ -76,13 +76,13 @@ export default function DocLinksBox({ projectId }: { projectId: string }) {
   }, [items, search]);
 
   return (
-    <div className="bg-white border rounded-lg overflow-hidden h-full flex flex-col">
-      <div className="flex items-center px-4 py-2 border-b bg-gradient-to-r from-blue-50 to-indigo-50 gap-2">
-        <button onClick={() => setCollapsed(!collapsed)} className="text-gray-500 hover:text-gray-700 text-xs">
+    <div className="bg-white border border-[#FFE4D6] rounded-xl overflow-hidden h-full flex flex-col" style={{ boxShadow: '0 4px 16px rgba(45,27,20,0.04)' }}>
+      <div className="flex items-center px-5 py-3 border-b border-[#FFE4D6] gap-2" style={{ background: 'linear-gradient(135deg, rgba(124,77,255,0.06) 0%, rgba(74,144,217,0.06) 100%)' }}>
+        <button onClick={() => setCollapsed(!collapsed)} className="text-[#8B6E60] hover:text-[#7C4DFF] text-xs">
           {collapsed ? '▶' : '▼'}
         </button>
-        <h2 className="font-semibold text-gray-700 text-sm">📎 Tài liệu dự án</h2>
-        <span className="text-[10px] text-gray-400">{items.length} links</span>
+        <h2 className="font-bold text-[#2D1B14] text-sm">📎 Tài liệu dự án</h2>
+        <span className="text-[10px] text-[#8B6E60] font-medium">{items.length} links</span>
       </div>
       {!collapsed && (
         <div className="px-4 py-3">

@@ -63,8 +63,10 @@ export function WeekRow({ week, month, year, members, expanded, expandedMembers,
   return (
     <>
       <tr
-        className={`bg-gray-100 cursor-pointer hover:bg-gray-200 group ${dragOver ? 'ring-2 ring-inset ring-blue-400 bg-blue-50' : ''}`}
-        style={{ height: ROW_H }}
+        className={`cursor-pointer group ${dragOver ? 'ring-2 ring-inset ring-[#F5A623]' : ''}`}
+        style={{ background: dragOver ? '#FFE4D6' : '#FFF0EB', height: ROW_H }}
+        onMouseEnter={(e) => { if (!dragOver) e.currentTarget.style.background = '#FFE4D6'; }}
+        onMouseLeave={(e) => { if (!dragOver) e.currentTarget.style.background = '#FFF0EB'; }}
         onClick={onToggleWeek}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -130,7 +132,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
 
   return (
     <>
-      <tr className="cursor-pointer hover:bg-gray-50 group" style={{ height: ROW_H }} onClick={onToggle}>
+      <tr className="cursor-pointer hover:bg-[#FFF8F5] group" style={{ height: ROW_H }} onClick={onToggle}>
         <td className="px-3 py-0 pl-8 font-medium" colSpan={5}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
@@ -139,7 +141,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
               {onCreateInlineTask && (
                 <button
                   onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}
-                  className="opacity-0 group-hover:opacity-100 text-blue-500 hover:text-blue-700 text-sm leading-none ml-0.5"
+                  className="opacity-0 group-hover:opacity-100 text-[#E8341A] hover:text-[#C42E15] text-sm leading-none ml-0.5"
                   title="Thêm task"
                 >
                   +
@@ -163,7 +165,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
           {tasks.map((task, idx) => (
             <tr
               key={task.id}
-              className={`hover:bg-blue-50 group/task cursor-grab active:cursor-grabbing ${dragOverTaskId === task.id ? 'border-t-2 border-blue-400' : ''}`}
+              className={`hover:bg-[#FFF8F5] group/task cursor-grab active:cursor-grabbing ${dragOverTaskId === task.id ? 'border-t-2 border-[#F5A623]' : ''}`}
               style={{ height: ROW_H, maxHeight: ROW_H, overflow: 'hidden' }}
               draggable={!!onReorderTasks}
               onDragStart={(e) => {
@@ -232,7 +234,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
             </tr>
           ))}
           {onCreateInlineTask && (isAdding ? (
-            <tr className="bg-blue-50/50" style={{ height: ROW_H }}>
+            <tr className="bg-[#FFF8F5]" style={{ height: ROW_H }}>
               <td className="px-3 py-0 pl-12" colSpan={5}>
                 <input
                   ref={inputRef}
@@ -249,8 +251,8 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
               </td>
             </tr>
           ) : (
-            <tr className="hover:bg-blue-50 cursor-pointer" style={{ height: ROW_H }} onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}>
-              <td className="px-3 py-0 pl-12 text-blue-500 hover:text-blue-700" colSpan={5}>
+            <tr className="hover:bg-[#FFF0EB] cursor-pointer" style={{ height: ROW_H }} onClick={(e) => { e.stopPropagation(); setIsAdding(true); }}>
+              <td className="px-3 py-0 pl-12 text-[#E8341A] hover:text-[#C42E15]" colSpan={5}>
                 + Thêm task
               </td>
             </tr>

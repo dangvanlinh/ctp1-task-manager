@@ -98,13 +98,13 @@ export default function BacklogBox({ projectId }: { projectId: string }) {
     id ? users.find((u) => u.id === id) : undefined;
 
   return (
-    <div className="bg-white border rounded-lg overflow-hidden">
-      <div className="flex items-center px-4 py-2 border-b bg-gradient-to-r from-amber-50 to-orange-50 gap-2">
-        <button onClick={() => setCollapsed(!collapsed)} className="text-gray-500 hover:text-gray-700 text-xs">
+    <div className="bg-white border border-[#FFE4D6] rounded-xl overflow-hidden" style={{ boxShadow: '0 4px 16px rgba(45,27,20,0.04)' }}>
+      <div className="flex items-center px-5 py-3 border-b border-[#FFE4D6] gap-2" style={{ background: 'linear-gradient(135deg, rgba(245,166,35,0.08) 0%, rgba(232,52,26,0.05) 100%)' }}>
+        <button onClick={() => setCollapsed(!collapsed)} className="text-[#8B6E60] hover:text-[#E8341A] text-xs">
           {collapsed ? '▶' : '▼'}
         </button>
-        <h2 className="font-semibold text-gray-700 text-sm">📋 Backlog</h2>
-        <span className="text-[10px] text-gray-400">{counts[TAB_ALL] || 0} active</span>
+        <h2 className="font-bold text-[#2D1B14] text-sm">📋 Backlog</h2>
+        <span className="text-[10px] text-[#8B6E60] font-medium">{counts[TAB_ALL] || 0} active</span>
       </div>
 
       {!collapsed && (
@@ -210,15 +210,16 @@ function TabBtn({ label, count, active, onClick, dim }: { label: string; count: 
       onClick={onClick}
       className={`px-2.5 py-1 text-[11px] rounded-md whitespace-nowrap transition-colors ${
         active
-          ? 'bg-amber-100 text-amber-800 font-medium'
+          ? 'text-white font-semibold'
           : dim
-          ? 'text-gray-400 hover:bg-gray-100'
-          : 'text-gray-600 hover:bg-gray-100'
+          ? 'text-[#FFD4C4] hover:bg-[#FFF0EB]'
+          : 'text-[#8B6E60] hover:bg-[#FFF0EB]'
       }`}
+      style={active ? { background: 'linear-gradient(135deg, #F5A623 0%, #E8341A 100%)' } : undefined}
     >
       {label}
       {count > 0 && (
-        <span className={`ml-1 text-[10px] ${active ? 'text-amber-600' : 'text-gray-400'}`}>
+        <span className={`ml-1 text-[10px] ${active ? 'text-white/90' : 'text-[#FFD4C4]'}`}>
           {count}
         </span>
       )}

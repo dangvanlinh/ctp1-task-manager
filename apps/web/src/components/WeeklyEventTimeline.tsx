@@ -399,13 +399,13 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
   const weeks = Array.from(new Set(eventWeeks.map((ew) => ew.week))).sort((a, b) => b - a);
 
   return (
-    <div className="bg-white border rounded-lg mb-4 mx-auto relative">
+    <div className="bg-white border border-[#FFE4D6] rounded-xl mb-4 mx-auto relative" style={{ boxShadow: '0 4px 16px rgba(45,27,20,0.04)' }}>
       {/* Header */}
-      <div className="flex items-center px-4 py-2 border-b bg-gray-50 gap-3">
-        <button onClick={() => setCollapsed(!collapsed)} className="text-gray-500 hover:text-gray-700">
+      <div className="flex items-center px-5 py-3 border-b border-[#FFE4D6] gap-3">
+        <button onClick={() => setCollapsed(!collapsed)} className="text-[#8B6E60] hover:text-[#E8341A] text-sm">
           {collapsed ? '▶' : '▼'}
         </button>
-        <h2 className="font-semibold text-gray-700">Config Event (tuần)</h2>
+        <h2 className="font-bold text-[#2D1B14]">Config Event (tuần)</h2>
         <div className="flex gap-2 ml-auto">
           {events.map((evt) => (
             <span key={evt.id} className={`text-[10px] px-2 py-0.5 rounded text-white ${evt.color}`}>{evt.name}</span>
@@ -418,15 +418,19 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
           <div className="mx-auto" style={{ width: totalDays * dayWidth }}>
           <div className="overflow-hidden">
           {/* Day headers */}
-          <div className="flex border-b bg-gray-50" style={{ height: HEADER_HEIGHT }}>
+          <div className="flex border-b border-[#FFE4D6] bg-[#FFF8F5]" style={{ height: HEADER_HEIGHT }}>
             {days.map((d) => {
               const weekend = isWeekend(year, month, d);
               const isToday = isCurrentMonth && d === todayDay;
               return (
                 <div
                   key={d}
-                  className={`text-center text-sm border-r flex items-center justify-center ${isToday ? 'bg-blue-600 text-white font-bold' : weekend ? 'bg-gray-200 text-gray-400' : 'text-gray-500'}`}
-                  style={{ width: dayWidth, minWidth: dayWidth }}
+                  className={`text-center text-sm border-r border-[#FFE4D6] flex items-center justify-center ${isToday ? 'text-white font-bold' : weekend ? 'bg-[#FFF0EB] text-[#8B6E60]' : 'text-[#8B6E60]'}`}
+                  style={
+                    isToday
+                      ? { width: dayWidth, minWidth: dayWidth, background: 'linear-gradient(135deg, #E8341A 0%, #F5A623 100%)' }
+                      : { width: dayWidth, minWidth: dayWidth }
+                  }
                 >
                   {d}
                 </div>
@@ -438,7 +442,7 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
           <div className="relative">
             {/* Today line */}
             {isCurrentMonth && (
-              <div className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-10 pointer-events-none" style={{ left: todayOffset }} />
+              <div className="absolute top-0 bottom-0 w-0.5 z-10 pointer-events-none" style={{ left: todayOffset, background: '#E8341A' }} />
             )}
 
             {weeks.map((w) => {
@@ -463,7 +467,7 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
                       <div key={`${w}-${evt.id}`} className={`relative border-b ${isFirst ? 'border-t border-gray-300' : ''}`} style={{ height: ROW_HEIGHT }}>
                         <div className="absolute inset-0 flex">
                           {days.map((d) => (
-                            <div key={d} className={`border-r h-full ${isWeekend(year, month, d) ? 'bg-gray-50' : ''}`} style={{ width: dayWidth, minWidth: dayWidth }} />
+                            <div key={d} className={`border-r border-[#FFE4D6]/60 h-full ${isWeekend(year, month, d) ? 'bg-[#FFF0EB]/40' : ''}`} style={{ width: dayWidth, minWidth: dayWidth }} />
                           ))}
                         </div>
                         {/* Build bar on first row with assignees integrated */}

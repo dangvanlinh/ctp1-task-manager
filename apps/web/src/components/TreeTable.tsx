@@ -25,7 +25,7 @@ export default function TreeTable({ grouped, activeWeeks, month, year, expandedW
     <div className="overflow-auto text-xs">
       <table className="w-full text-left">
         <thead>
-          <tr className="border-b text-xs text-gray-500 bg-gray-50 sticky top-0 whitespace-nowrap" style={{ height: 32 }}>
+          <tr className="border-b border-[#FFE4D6] text-xs text-[#8B6E60] sticky top-0 whitespace-nowrap" style={{ height: 32, background: '#FFF8F5' }}>
             <th className="px-3 py-0 font-medium">Summary</th>
             <th className="px-3 py-0 font-medium">Start</th>
             <th className="px-3 py-0 font-medium">End</th>
@@ -64,7 +64,7 @@ export default function TreeTable({ grouped, activeWeeks, month, year, expandedW
               <td colSpan={5} className="px-4 py-0">
                 <button
                   onClick={onAddWeek}
-                  className="text-sm text-blue-500 hover:text-blue-700 font-medium"
+                  className="text-sm text-[#E8341A] hover:text-[#C42E15] font-medium"
                 >
                   + Thêm tuần
                 </button>
