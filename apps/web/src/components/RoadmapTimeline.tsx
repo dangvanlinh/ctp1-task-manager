@@ -22,7 +22,7 @@ const palette = (key: string) => COLOR_PALETTE[key] ?? COLOR_PALETTE['bg-blue-50
 
 const MONTH_SHORT = ['Thg 1','Thg 2','Thg 3','Thg 4','Thg 5','Thg 6','Thg 7','Thg 8','Thg 9','Thg 10','Thg 11','Thg 12'];
 
-const MONTH_WIDTH = 110;
+// Layout: 12 months distributed evenly across full container width using CSS grid (no scroll).
 const ROW_HEIGHT = 36;
 const HEADER_HEIGHT = 32;
 
@@ -161,8 +161,9 @@ export default function RoadmapTimeline({ projectId, canEdit }: Props) {
   };
 
   const isCurrentYear = year === today.getFullYear();
-  const todayLeft = isCurrentYear
-    ? (today.getMonth() * MONTH_WIDTH) + (((today.getDate() - 1) / daysInMonth(year, today.getMonth() + 1)) * MONTH_WIDTH)
+  // Today's horizontal position as percentage (0-100) of the 12-month span
+  const todayLeftPct = isCurrentYear
+    ? ((today.getMonth() + (today.getDate() - 1) / daysInMonth(year, today.getMonth() + 1)) / 12) * 100
     : -1;
 
   return (
@@ -200,119 +201,125 @@ export default function RoadmapTimeline({ projectId, canEdit }: Props) {
       </div>
 
       {!collapsed && (
-        <div className="overflow-x-auto bg-gray-50/40">
-          <div style={{ width: 12 * MONTH_WIDTH, minWidth: '100%' }}>
-            {/* Month header */}
-            <div className="flex border-b border-gray-200 bg-white" style={{ height: HEADER_HEIGHT }}>
-              {MONTH_SHORT.map((label, i) => {
+        <div className="bg-gray-50/40">
+          {/* Month header — 12 equal columns */}
+          <div
+            className="grid border-b border-gray-200 bg-white"
+            style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', height: HEADER_HEIGHT }}
+          >
+            {MONTH_SHORT.map((label, i) => {
+              const m = i + 1;
+              const isCurrentMonth = isCurrentYear && m === today.getMonth() + 1;
+              return (
+                <div
+                  key={i}
+                  className={`text-center text-xs font-semibold border-r last:border-r-0 border-gray-200 flex items-center justify-center ${
+                    isCurrentMonth ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600'
+                  }`}
+                >
+                  {label}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Grid body */}
+          <div className="relative" style={{ height: totalRows * ROW_HEIGHT + 8 }}>
+            {/* Vertical month cells (clickable to add + drop targets) */}
+            <div
+              className="absolute inset-0 grid"
+              style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))' }}
+            >
+              {MONTH_SHORT.map((_, i) => {
                 const m = i + 1;
                 const isCurrentMonth = isCurrentYear && m === today.getMonth() + 1;
+                const isHover = hoverMonth === m;
                 return (
                   <div
                     key={i}
-                    className={`text-center text-xs font-semibold border-r border-gray-200 flex items-center justify-center ${
-                      isCurrentMonth ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600'
+                    className={`border-r last:border-r-0 border-gray-200 h-full transition-colors ${
+                      isCurrentMonth ? 'bg-indigo-50/30' : ''
+                    } ${isHover && draggingId ? 'bg-indigo-100/40' : ''} ${
+                      canEdit ? 'cursor-pointer hover:bg-gray-100/40 group/col' : ''
                     }`}
-                    style={{ width: MONTH_WIDTH, minWidth: MONTH_WIDTH }}
-                  >
-                    {label}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Grid body */}
-            <div className="relative" style={{ height: totalRows * ROW_HEIGHT + 8 }}>
-              {/* Vertical month grid lines (clickable to add) */}
-              <div className="absolute inset-0 flex">
-                {MONTH_SHORT.map((_, i) => {
-                  const m = i + 1;
-                  const isCurrentMonth = isCurrentYear && m === today.getMonth() + 1;
-                  const isHover = hoverMonth === m;
-                  return (
-                    <div
-                      key={i}
-                      className={`border-r border-gray-200 h-full transition-colors ${
-                        isCurrentMonth ? 'bg-indigo-50/30' : ''
-                      } ${isHover && draggingId ? 'bg-indigo-100/40' : ''} ${
-                        canEdit ? 'cursor-pointer hover:bg-gray-100/40 group/col' : ''
-                      }`}
-                      style={{ width: MONTH_WIDTH, minWidth: MONTH_WIDTH }}
-                      onClick={(e) => {
-                        if (!canEdit) return;
-                        // Only fire if clicked on empty area (not on a card via stopPropagation)
-                        if (e.target === e.currentTarget) openNew(m);
-                      }}
-                      onDragOver={(e) => {
-                        if (!draggingId) return;
-                        e.preventDefault();
-                        setHoverMonth(m);
-                      }}
-                      onDragLeave={() => setHoverMonth(null)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const id = e.dataTransfer.getData('text/roadmap-id');
-                        if (!id) return;
-                        const item = items.find((it) => it.id === id);
-                        if (item) moveItem(item, m);
-                        setDraggingId(null);
-                        setHoverMonth(null);
-                      }}
-                    >
-                      {canEdit && (
-                        <div className="opacity-0 group-hover/col:opacity-100 h-full flex items-center justify-center text-gray-400 text-lg pointer-events-none transition-opacity">
-                          +
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Today line */}
-              {todayLeft >= 0 && (
-                <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-indigo-500 z-10 pointer-events-none"
-                  style={{ left: todayLeft }}
-                  title="Hôm nay"
-                />
-              )}
-
-              {/* Item bars */}
-              {itemsLaidOut.map(({ item, sM, eM, row }) => {
-                const c = palette(item.color);
-                const left = (sM - 1) * MONTH_WIDTH + 4;
-                const width = (eM - sM + 1) * MONTH_WIDTH - 8;
-                const top = row * ROW_HEIGHT + 4;
-                return (
-                  <div
-                    key={item.id}
-                    draggable={canEdit}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('text/roadmap-id', item.id);
-                      e.dataTransfer.effectAllowed = 'move';
-                      setDraggingId(item.id);
+                    onClick={(e) => {
+                      if (!canEdit) return;
+                      if (e.target === e.currentTarget) openNew(m);
                     }}
-                    onDragEnd={() => { setDraggingId(null); setHoverMonth(null); }}
-                    onClick={(e) => { e.stopPropagation(); if (canEdit) openEdit(item); }}
-                    className={`absolute ${c.bar} text-white rounded-md shadow-sm hover:shadow-md cursor-pointer flex items-center px-2.5 transition-all ${
-                      draggingId === item.id ? 'opacity-50' : 'opacity-95 hover:opacity-100'
-                    }`}
-                    style={{ left, width, top, height: ROW_HEIGHT - 8 }}
-                    title={`${item.name}${item.description ? ' — ' + item.description : ''}`}
+                    onDragOver={(e) => {
+                      if (!draggingId) return;
+                      e.preventDefault();
+                      setHoverMonth(m);
+                    }}
+                    onDragLeave={() => setHoverMonth(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const id = e.dataTransfer.getData('text/roadmap-id');
+                      if (!id) return;
+                      const item = items.find((it) => it.id === id);
+                      if (item) moveItem(item, m);
+                      setDraggingId(null);
+                      setHoverMonth(null);
+                    }}
                   >
-                    <span className="text-xs font-medium truncate">{item.name}</span>
+                    {canEdit && (
+                      <div className="opacity-0 group-hover/col:opacity-100 h-full flex items-center justify-center text-gray-400 text-lg pointer-events-none transition-opacity">
+                        +
+                      </div>
+                    )}
                   </div>
                 );
               })}
-
-              {/* Empty state */}
-              {yearItems.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 italic pointer-events-none">
-                  Chưa có update nào trong năm {year}. {canEdit ? 'Click vào ô tháng để thêm.' : ''}
-                </div>
-              )}
             </div>
+
+            {/* Today line */}
+            {todayLeftPct >= 0 && (
+              <div
+                className="absolute top-0 bottom-0 w-0.5 bg-indigo-500 z-10 pointer-events-none"
+                style={{ left: `${todayLeftPct}%` }}
+                title="Hôm nay"
+              />
+            )}
+
+            {/* Item bars (percentage-based positioning) */}
+            {itemsLaidOut.map(({ item, sM, eM, row }) => {
+              const c = palette(item.color);
+              const leftPct = ((sM - 1) / 12) * 100;
+              const widthPct = ((eM - sM + 1) / 12) * 100;
+              const top = row * ROW_HEIGHT + 4;
+              return (
+                <div
+                  key={item.id}
+                  draggable={canEdit}
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('text/roadmap-id', item.id);
+                    e.dataTransfer.effectAllowed = 'move';
+                    setDraggingId(item.id);
+                  }}
+                  onDragEnd={() => { setDraggingId(null); setHoverMonth(null); }}
+                  onClick={(e) => { e.stopPropagation(); if (canEdit) openEdit(item); }}
+                  className={`absolute ${c.bar} text-white rounded-md shadow-sm hover:shadow-md cursor-pointer flex items-center px-2.5 transition-all ${
+                    draggingId === item.id ? 'opacity-50' : 'opacity-95 hover:opacity-100'
+                  }`}
+                  style={{
+                    left: `calc(${leftPct}% + 4px)`,
+                    width: `calc(${widthPct}% - 8px)`,
+                    top,
+                    height: ROW_HEIGHT - 8,
+                  }}
+                  title={`${item.name}${item.description ? ' — ' + item.description : ''}`}
+                >
+                  <span className="text-xs font-medium truncate">{item.name}</span>
+                </div>
+              );
+            })}
+
+            {/* Empty state */}
+            {yearItems.length === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400 italic pointer-events-none">
+                Chưa có update nào trong năm {year}. {canEdit ? 'Click vào ô tháng để thêm.' : ''}
+              </div>
+            )}
           </div>
         </div>
       )}
