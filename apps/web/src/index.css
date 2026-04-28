@@ -1,3 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ZPS Studio brand tokens */
+:root {
+  --zps-brand-red: #E8341A;
+  --zps-brand-orange: #F5A623;
+  --zps-brand-gradient: linear-gradient(135deg, #E8341A 0%, #F5A623 100%);
+
+  --zps-bg-warm-page: #FFF8F5;
+  --zps-bg-warm-surface: #FFFFFF;
+  --zps-bg-warm-elevated: #FFF0EB;
+  --zps-text-warm: #2D1B14;
+  --zps-text-warm-sub: #8B6E60;
+
+  --zps-accent-green: #00D68F;
+  --zps-accent-purple: #7C4DFF;
+  --zps-accent-blue: #4A90D9;
+
+  --zps-success: #00D68F;
+  --zps-warning: #F5A623;
+  --zps-danger: #E8341A;
+}
+
+html, body, #root {
+  font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--zps-bg-warm-page);
+  color: var(--zps-text-warm);
+}
+
+.zps-brand-text {
+  background: var(--zps-brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-weight: 800;
+}
+
+.zps-brand-bg {
+  background: var(--zps-brand-gradient);
+}

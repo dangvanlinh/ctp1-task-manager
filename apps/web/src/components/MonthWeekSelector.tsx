@@ -156,8 +156,8 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
 
       {/* Month tabs row — 12 columns same grid */}
       <div
-        className="grid w-full bg-gray-100 rounded-lg p-1 gap-1"
-        style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))' }}
+        className="grid w-full rounded-lg p-1 gap-1"
+        style={{ gridTemplateColumns: 'repeat(12, minmax(0, 1fr))', background: '#FFF0EB' }}
       >
         {MONTH_NAMES.map((name, i) => {
           const m = i + 1;
@@ -166,9 +166,14 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
             <button
               key={m}
               onClick={() => onChangeMonth(m, year)}
-              className={`py-1.5 rounded-md text-sm font-medium transition-colors ${
-                isActive ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+              className={`py-1.5 rounded-md text-sm font-semibold transition-all ${
+                isActive ? 'text-white' : 'text-[#8B6E60] hover:bg-[#FFE4D6] hover:text-[#E8341A]'
               }`}
+              style={
+                isActive
+                  ? { background: 'linear-gradient(135deg, #E8341A 0%, #F5A623 100%)', boxShadow: '0 4px 14px rgba(232,52,26,0.25)' }
+                  : undefined
+              }
             >
               {name}
             </button>
@@ -177,15 +182,15 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
       </div>
 
       {/* Full-width Progress bar — under month tabs */}
-      <div className="mt-2">
-        <div className="flex items-center justify-between mb-1 px-1">
-          <span className="text-[10px] uppercase tracking-wider text-gray-500 font-medium">
+      <div className="mt-3">
+        <div className="flex items-center justify-between mb-1.5 px-1">
+          <span className="text-[10px] uppercase tracking-[0.12em] text-[#8B6E60] font-bold">
             Progress {year}
           </span>
-          <span className="text-[11px] text-gray-500">
-            <span className="font-semibold text-gray-700">{formatVnd(ytdTotal)}</span>
-            {pct !== null && <span className="text-blue-600 font-medium ml-1">({pct}%)</span>}
-            <span className="mx-1 text-gray-300">/</span>
+          <span className="text-[11px] text-[#8B6E60]">
+            <span className="font-bold text-[#2D1B14]">{formatVnd(ytdTotal)}</span>
+            {pct !== null && <span className="font-semibold ml-1" style={{ color: '#E8341A' }}>({pct}%)</span>}
+            <span className="mx-1.5 text-[#FFD4C4]">/</span>
             {editingMonth === 'kpi' ? (
               <input
                 ref={inputRef}
@@ -197,25 +202,30 @@ export default function MonthWeekSelector({ month, year, onChangeMonth, revenues
                 }}
                 onBlur={commit}
                 placeholder="KPI VD: 50B"
-                className="text-[11px] border border-purple-400 rounded outline-none px-1.5 py-0.5 w-24 bg-white inline-block"
+                className="text-[11px] border border-[#F5A623] rounded outline-none px-1.5 py-0.5 w-24 bg-white inline-block"
               />
             ) : (
               <button
                 onClick={() => startEdit('kpi')}
                 disabled={!canEdit}
-                className={`font-semibold ${canEdit ? 'text-purple-700 hover:underline cursor-pointer' : 'text-gray-700 cursor-default'}`}
+                className={`font-bold ${canEdit ? 'hover:underline cursor-pointer' : 'cursor-default'}`}
+                style={{ color: '#7C4DFF' }}
                 title={canEdit ? 'Click để sửa KPI năm' : ''}
               >
                 KPI {kpi > 0 ? formatVnd(kpi) : '— Set KPI'}
               </button>
             )}
-            {error && <span className="text-[10px] text-red-500 ml-2">{error}</span>}
+            {error && <span className="text-[10px] text-[#E8341A] ml-2">{error}</span>}
           </span>
         </div>
-        <div className="relative h-3 w-full bg-gray-100 rounded-full overflow-hidden border border-gray-200">
+        <div className="relative h-3 w-full rounded-full overflow-hidden" style={{ background: '#FFF0EB', border: '1px solid #FFE4D6' }}>
           <div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-blue-500 via-blue-500 to-blue-400 rounded-full transition-all"
-            style={{ width: kpi > 0 ? `${Math.min(100, (ytdTotal / kpi) * 100)}%` : '0%' }}
+            className="absolute inset-y-0 left-0 rounded-full transition-all"
+            style={{
+              width: kpi > 0 ? `${Math.min(100, (ytdTotal / kpi) * 100)}%` : '0%',
+              background: 'linear-gradient(90deg, #E8341A 0%, #F5A623 100%)',
+              boxShadow: '0 0 12px rgba(245,166,35,0.45)',
+            }}
           />
         </div>
       </div>

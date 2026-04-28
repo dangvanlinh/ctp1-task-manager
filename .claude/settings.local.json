@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npx tsc:*)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(mkdir -p \"D:/Work/VNG/ctp1/Agent/Task manager/apps/web/public\")",
+      "Bash(cp \"C:/Users/linhd/.claude/skills/zps-studio-ui/assets/favicon-32x32.png\" \"D:/Work/VNG/ctp1/Agent/Task manager/apps/web/public/\")",
+      "Bash(cp \"C:/Users/linhd/.claude/skills/zps-studio-ui/assets/fox_small.png\" \"D:/Work/VNG/ctp1/Agent/Task manager/apps/web/public/\")",
+      "Bash(cp \"C:/Users/linhd/.claude/skills/zps-studio-ui/assets/logo_small.png\" \"D:/Work/VNG/ctp1/Agent/Task manager/apps/web/public/\")",
+      "Bash(cp \"C:/Users/linhd/.claude/skills/zps-studio-ui/assets/logo_ngang_small.png\" \"D:/Work/VNG/ctp1/Agent/Task manager/apps/web/public/\")"
     ]
   }
 }

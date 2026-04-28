@@ -15,29 +15,79 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     : null;
   const title = currentProject?.name ?? 'CTP1 Task Manager';
 
-  const navItem = (path: string, label: string) => (
-    <button
-      onClick={() => navigate(path)}
-      className={`text-sm px-3 py-1 rounded ${location.pathname === path ? 'bg-blue-100 text-blue-700 font-medium' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'}`}
-    >
-      {label}
-    </button>
-  );
+  const navItem = (path: string, label: string) => {
+    const active = location.pathname === path;
+    return (
+      <button
+        onClick={() => navigate(path)}
+        className={`text-sm px-3.5 py-1.5 rounded-lg font-medium transition-all ${
+          active
+            ? 'text-white shadow-md'
+            : 'text-[#8B6E60] hover:text-[#E8341A] hover:bg-[#FFF0EB]'
+        }`}
+        style={
+          active
+            ? { background: 'linear-gradient(135deg, #E8341A 0%, #F5A623 100%)', boxShadow: '0 4px 14px rgba(232,52,26,0.25)' }
+            : undefined
+        }
+      >
+        {label}
+      </button>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <h1 className="text-lg font-bold text-gray-800 cursor-pointer" onClick={() => navigate('/')}>{title}</h1>
-          <nav className="flex items-center gap-1">
+    <div className="min-h-screen" style={{ background: '#FFF8F5' }}>
+      <header className="bg-white border-b border-[#FFE4D6] px-6 py-3 flex items-center justify-between sticky top-0 z-30" style={{ boxShadow: '0 1px 8px rgba(45,27,20,0.04)' }}>
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2.5 group"
+          >
+            <img
+              src="/fox_small.png"
+              alt="ZPS"
+              className="w-9 h-9 rounded-[10px] object-contain group-hover:scale-105 transition-transform"
+              style={{ filter: 'drop-shadow(0 2px 6px rgba(232,52,26,0.2))' }}
+            />
+            <div className="flex flex-col items-start leading-tight">
+              <span className="zps-brand-text text-base">{title}</span>
+              <span className="text-[10px] uppercase tracking-[0.12em] text-[#8B6E60] font-semibold">ZPS Studio</span>
+            </div>
+          </button>
+          <nav className="flex items-center gap-1.5">
             {navItem('/', 'Projects')}
             {isPmOrAdmin && navItem('/members', 'Members')}
             {isPmOrAdmin && navItem('/api-tokens', 'API Tokens')}
           </nav>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600">{user?.name} <span className={`text-xs px-1.5 py-0.5 rounded ${user?.role === 'ADMIN' ? 'bg-red-100 text-red-600' : user?.role === 'PM' ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>{user?.role}</span></span>
-          <button onClick={() => { clearAuth(); navigate('/login'); }} className="text-sm text-red-500 hover:text-red-700">Đăng xuất</button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm"
+              style={{ background: 'linear-gradient(135deg, #E8341A 0%, #F5A623 100%)' }}
+            >
+              {user?.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col items-start leading-tight">
+              <span className="text-sm font-semibold text-[#2D1B14]">{user?.name}</span>
+              <span
+                className={`text-[10px] uppercase tracking-wider font-semibold ${
+                  user?.role === 'ADMIN' ? 'text-[#E8341A]' :
+                  user?.role === 'PM' ? 'text-[#7C4DFF]' :
+                  'text-[#8B6E60]'
+                }`}
+              >
+                {user?.role}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => { clearAuth(); navigate('/login'); }}
+            className="text-sm text-[#8B6E60] hover:text-[#E8341A] px-3 py-1.5 rounded-lg hover:bg-[#FFF0EB] transition-colors"
+          >
+            Đăng xuất
+          </button>
         </div>
       </header>
       <main>{children}</main>

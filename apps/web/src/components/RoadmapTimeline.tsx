@@ -7,15 +7,16 @@ interface Props {
   canEdit?: boolean;
 }
 
+// ZPS brand palette — bar uses inline style (#hex) so colors match brand exactly
 const COLOR_PALETTE: Record<string, { bar: string; chipBg: string; chipText: string; label: string }> = {
-  'bg-blue-500':   { bar: 'bg-blue-500',    chipBg: 'bg-blue-50',    chipText: 'text-blue-700',    label: 'Blue' },
-  'bg-green-500':  { bar: 'bg-emerald-500', chipBg: 'bg-emerald-50', chipText: 'text-emerald-700', label: 'Green' },
-  'bg-purple-500': { bar: 'bg-purple-500',  chipBg: 'bg-purple-50',  chipText: 'text-purple-700',  label: 'Purple' },
-  'bg-orange-500': { bar: 'bg-orange-500',  chipBg: 'bg-orange-50',  chipText: 'text-orange-700',  label: 'Orange' },
-  'bg-red-500':    { bar: 'bg-rose-500',    chipBg: 'bg-rose-50',    chipText: 'text-rose-700',    label: 'Red' },
-  'bg-yellow-500': { bar: 'bg-amber-500',   chipBg: 'bg-amber-50',   chipText: 'text-amber-700',   label: 'Yellow' },
-  'bg-pink-500':   { bar: 'bg-pink-500',    chipBg: 'bg-pink-50',    chipText: 'text-pink-700',    label: 'Pink' },
-  'bg-gray-500':   { bar: 'bg-slate-500',   chipBg: 'bg-slate-50',   chipText: 'text-slate-700',   label: 'Gray' },
+  'bg-blue-500':   { bar: '#4A90D9',  chipBg: 'bg-blue-50',    chipText: 'text-[#4A90D9]',  label: 'Blue' },
+  'bg-green-500':  { bar: '#00D68F',  chipBg: 'bg-emerald-50', chipText: 'text-[#00A86F]',  label: 'Green' },
+  'bg-purple-500': { bar: '#7C4DFF',  chipBg: 'bg-purple-50',  chipText: 'text-[#7C4DFF]',  label: 'Purple' },
+  'bg-orange-500': { bar: '#F5A623',  chipBg: 'bg-amber-50',   chipText: 'text-[#C97F0B]',  label: 'Orange' },
+  'bg-red-500':    { bar: '#E8341A',  chipBg: 'bg-rose-50',    chipText: 'text-[#E8341A]',  label: 'Red' },
+  'bg-yellow-500': { bar: '#FFC940',  chipBg: 'bg-amber-50',   chipText: 'text-[#A87B00]',  label: 'Yellow' },
+  'bg-pink-500':   { bar: '#FF5DA2',  chipBg: 'bg-pink-50',    chipText: 'text-[#D63384]',  label: 'Pink' },
+  'bg-gray-500':   { bar: '#8B6E60',  chipBg: 'bg-slate-50',   chipText: 'text-[#8B6E60]',  label: 'Gray' },
 };
 const COLOR_KEYS = Object.keys(COLOR_PALETTE);
 const palette = (key: string) => COLOR_PALETTE[key] ?? COLOR_PALETTE['bg-blue-500'];
@@ -340,7 +341,7 @@ export default function RoadmapTimeline({ projectId, canEdit }: Props) {
                     setHoverMonth(null);
                   }}
                   onClick={(e) => { e.stopPropagation(); if (canEdit) openEdit(item); }}
-                  className={`absolute ${c.bar} text-white rounded-md shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing flex items-center px-2.5 transition-all ${
+                  className={`absolute text-white rounded-md shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing flex items-center px-2.5 transition-all ${
                     draggingId === item.id ? 'opacity-50' : 'opacity-95 hover:opacity-100'
                   }`}
                   style={{
@@ -348,6 +349,8 @@ export default function RoadmapTimeline({ projectId, canEdit }: Props) {
                     width: `calc(${widthPct}% - 8px)`,
                     top,
                     height: ROW_HEIGHT - 8,
+                    background: c.bar,
+                    boxShadow: `0 2px 10px ${c.bar}40`,
                   }}
                   title={`${item.name}${item.description ? ' — ' + item.description : ''}`}
                 >
@@ -439,7 +442,8 @@ export default function RoadmapTimeline({ projectId, canEdit }: Props) {
                       <button
                         key={key}
                         onClick={() => setDraft((p) => ({ ...p, color: key }))}
-                        className={`relative ${c.bar} w-8 h-8 rounded-lg transition-all hover:scale-110 ${selected ? 'ring-2 ring-offset-2 ring-gray-900' : ''}`}
+                        className={`relative w-8 h-8 rounded-lg transition-all hover:scale-110 ${selected ? 'ring-2 ring-offset-2 ring-gray-900' : ''}`}
+                        style={{ background: c.bar }}
                         title={c.label}
                       >
                         {selected && <span className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold">✓</span>}
