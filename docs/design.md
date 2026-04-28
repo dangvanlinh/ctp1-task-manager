@@ -2,7 +2,14 @@
 
 ## Tổng quan kiến trúc UI
 
-Trang Project Board (`ProjectBoardPage.tsx`) gồm 3 phần chính từ trên xuống dưới:
+Trang Project Board (`ProjectBoardPage.tsx`) gồm các phần chính từ trên xuống dưới:
+
+0. **Roadmap N tháng tới** — `RoadmapTimeline.tsx` (mặc định 3 tháng)
+   - Timeline ngang theo ngày, span từ đầu tháng hiện tại đến cuối tháng (current + N − 1)
+   - Mỗi "update" là 1 thanh ngang có tên + màu, click để sửa, có nút + để thêm
+   - CRUD đầy đủ qua API `/roadmap`, persist trong DB (`RoadmapUpdate` table)
+   - Modal edit cho phép đổi tên, mô tả, ngày bắt đầu/kết thúc, màu, xoá
+   - Day grid + today marker (vạch xanh) giống Config tuần
 
 1. **Config Event (tuần)** — `WeeklyEventTimeline.tsx`
    - Hiển thị các event bar theo tuần (Build bar + Live bar cho mỗi loại event)
@@ -63,6 +70,37 @@ Trang Project Board (`ProjectBoardPage.tsx`) gồm 3 phần chính từ trên xu
 - Sort theo position: **Designer → Dev → Artist → BD**
 
 ## Changelog
+
+### 2026-04-24
+- **Feature — Roadmap N tháng tới** (mặc định 3 tháng):
+  - Component `RoadmapTimeline.tsx` đặt phía trên `WeeklyEventTimeline`.
+  - Model `RoadmapUpdate { projectId, name, description, color, startDate, endDate, order }` + migration `20260424_add_roadmap`.
+  - API `/roadmap`: GET (allow API token), POST/PATCH/DELETE (ADMIN/PM).
+  - UI: timeline ngang theo ngày (`DAY_WIDTH=16`), header gồm 2 hàng — month label + day number; bar có thể click → modal sửa tên, mô tả, ngày, màu, xoá.
+  - 8 tuỳ chọn màu Tailwind preset; today marker xanh; weekend màu xám nhạt.
+  - Empty state: "Chưa có update nào. Bấm + Thêm update để bắt đầu."
+
+- **Feature — Backlog & DocLinks chuyển từ localStorage sang DB**:
+  - 2 model mới `BacklogItem`, `DocLink` (project-scoped). Migration `20260424_add_backlog_doclinks`.
+  - API CRUD đầy đủ + endpoint `/bulk` để 1-shot import từ localStorage.
+  - Component `BacklogBox` + `DocLinksBox` dùng `useQuery`/`useMutation` thay cho `useState`+`localStorage`.
+  - One-time migration: nếu API trả `[]` và localStorage có data → tự upload qua `/bulk`.
+  - Giúp data project-level visible cho cả team, cross-device.
+
+- **Feature — SSO login (1 bước)**:
+  - Endpoint `/auth/sso` đọc header `X-Forwarded-Email` (OAuth2 Proxy ZPS), match với `User.ssoEmail`, issue JWT.
+  - Migration `20260424_add_sso_email`: thêm `ssoEmail String? @unique` vào User.
+  - `ProtectedRoute` ở production tự gọi `ssoLogin()` trên mount; chỉ thấy màn login app khi SSO fail (rồi link "Đăng nhập bằng mật khẩu" để bootstrap).
+  - Members page có cột + ô input "SSO Email" cho admin/PM nhập VNG email của member.
+  - Dev mode: vẫn auto-login PM/123456 cho tiện.
+
+- **Infra — Self-host trên ZPS Deploy** (deploy.zingplay.com / Dokploy):
+  - Single container: builder stage build cả API + Web; runtime stage có nginx serve `/usr/share/nginx/html`, Node API trên `:3000`, nginx proxy `/api/*` → Node.
+  - `start.sh`: wait for DB → `prisma migrate deploy` → optional 1-time pg_dump+psql migrate from Neon (gated by `NEON_URL` env, runs only if User table empty) → launch API + nginx.
+  - `postgresql-client-17` từ PGDG repo (Debian default 15 quá cũ cho Neon v17).
+  - Postgres + app run trong cùng project Dokploy → reachable qua service name (`postgres-parse-primary-port-qz7ncx`) trên overlay network.
+  - `zdeploy` CLI: `npm link` → `zdeploy login` → các command `project create`, `db postgresql create/deploy`, `app create`, `envvar push`, `app deploy --local --build-type dockerfile -y`, `domain create --https`.
+  - Access mode: All ZPS Access (default) — VNG SSO only. Chuyển Public cần admin (`@quanndm_zps`).
 
 ### 2026-04-22
 - **Feature — Monthly Revenue (VND)**:

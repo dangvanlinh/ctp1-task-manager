@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import MonthWeekSelector from '../components/MonthWeekSelector';
 import WeeklyEventTimeline from '../components/WeeklyEventTimeline';
+import RoadmapTimeline from '../components/RoadmapTimeline';
 import TreeTable from '../components/TreeTable';
 import GanttChart from '../components/GanttChart';
 import TaskForm from '../components/TaskForm';
@@ -311,6 +312,7 @@ export default function ProjectBoardPage() {
         {canEdit && <button onClick={handleAddTaskGeneral} className="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700">+ Thêm Task</button>}
       </div>
       <div className="mt-4">
+        <RoadmapTimeline projectId={projectId!} canEdit={canEdit} monthsAhead={3} />
         <WeeklyEventTimeline
           projectId={projectId!}
           month={month}

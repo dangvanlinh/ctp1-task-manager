@@ -11,6 +11,7 @@ import { weeklyEvents } from './routes/weeklyEvents';
 import { monthlyRevenue } from './routes/monthlyRevenue';
 import { backlog } from './routes/backlog';
 import { docLinks } from './routes/docLinks';
+import { roadmap } from './routes/roadmap';
 
 const app = new Hono();
 
@@ -29,6 +30,7 @@ app.route('/weekly-events', weeklyEvents);
 app.route('/monthly-revenue', monthlyRevenue);
 app.route('/backlog', backlog);
 app.route('/doc-links', docLinks);
+app.route('/roadmap', roadmap);
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));
