@@ -295,6 +295,7 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
     );
   };
 
+
   // No need for document click listener - using backdrop overlay instead
 
   return (
@@ -519,13 +520,57 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
               return (
                 <div
                   key={phase.id}
-                  className={`absolute ${color} ${isPastPhase ? 'opacity-50' : 'opacity-80 hover:opacity-100'} flex items-center justify-center transition-opacity group/phase`}
+                  className={`absolute ${color} ${isPastPhase ? 'opacity-50' : 'opacity-80 hover:opacity-100'} flex items-center justify-center transition-opacity group/phase ${isEditing ? '' : 'cursor-grab active:cursor-grabbing'}`}
                   style={{ left, width, height: ROW_HEIGHT - 6, top: 3, borderRadius: 3 }}
+                  onMouseDown={(e) => {
+                    if (isEditing) return;
+                    // Ignore clicks on resize handles or buttons (they have higher z + their own handlers stop propagation)
+                    const target = e.target as HTMLElement;
+                    if (target.closest('button, input')) return;
+                    if (target.classList.contains('cursor-col-resize')) return;
+                    e.preventDefault();
+                    const startX = e.clientX;
+                    const origStart = phase.startDay;
+                    const origEnd = phase.endDay;
+                    let lastDelta = 0;
+                    const onMove = (ev: MouseEvent) => {
+                      const dx = ev.clientX - startX;
+                      const delta = Math.round(dx / dayWidth);
+                      if (delta === lastDelta) return;
+                      lastDelta = delta;
+                      // Compute new positions but don't go below day 1
+                      const newStart = Math.max(1, origStart + delta);
+                      const newEnd = newStart + (origEnd - origStart);
+                      // Apply by setting both startDay and endDay
+                      updatePhases(build.id, (prev) =>
+                        prev.map((p) => p.id === phase.id ? { ...p, startDay: newStart, endDay: newEnd } : p)
+                      );
+                    };
+                    const onUp = () => {
+                      document.removeEventListener('mousemove', onMove);
+                      document.removeEventListener('mouseup', onUp);
+                      // Final notify parent for task sync
+                      if (onPhaseResize) {
+                        // Use latest phasesMap by reading via callback
+                        setPhasesMap((cur) => {
+                          const list = cur[build.id] ?? [];
+                          if (list.length > 0) {
+                            const startDay = Math.min(...list.map((p) => p.startDay));
+                            const endDay = Math.max(...list.map((p) => p.endDay));
+                            onPhaseResize(build.id, startDay, endDay);
+                          }
+                          return cur;
+                        });
+                      }
+                    };
+                    document.addEventListener('mousemove', onMove);
+                    document.addEventListener('mouseup', onUp);
+                  }}
                   onDoubleClick={() => {
                     setEditingLabel(phase.id);
                     setEditLabelValue(phase.label);
                   }}
-                  title={`${phase.label}: ngày ${phase.startDay} → ${phase.endDay}`}
+                  title={`${phase.label}: ngày ${phase.startDay} → ${phase.endDay} (kéo để đổi thời gian)`}
                 >
                   {isEditing ? (
                     <input
