@@ -20,7 +20,8 @@ export default function BacklogBox({ projectId }: { projectId: string }) {
     enabled: !!projectId,
   });
   const { data: allUsers = [] } = useQuery({ queryKey: ['users'], queryFn: fetchUsers });
-  const users = useMemo(() => allUsers.filter((u) => u.role !== 'ADMIN'), [allUsers]);
+  // Include all users (PM/ADMIN/MEMBER) so PM has their own backlog tab too
+  const users = allUsers;
 
   const [collapsed, setCollapsed] = useState(false);
   const [newText, setNewText] = useState('');
