@@ -160,6 +160,32 @@ export default function RoadmapTimeline({ projectId, canEdit }: Props) {
     });
   };
 
+  // Reorder: dragged → before/after target. Swaps order values within same start-month group.
+  const reorderItems = (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
+    const dragged = items.find((it) => it.id === draggedId);
+    const target = items.find((it) => it.id === targetId);
+    if (!dragged || !target) return;
+    const dM = new Date(dragged.startDate).getMonth();
+    const tM = new Date(target.startDate).getMonth();
+    if (dM !== tM) {
+      // Different months → move to target's month + put before target
+      moveItem(dragged, tM + 1);
+      return;
+    }
+    // Same month: rebuild order in that month
+    const monthGroup = items
+      .filter((it) => new Date(it.startDate).getMonth() === tM && new Date(it.startDate).getFullYear() === year)
+      .sort((a, b) => a.order - b.order || a.createdAt.localeCompare(b.createdAt));
+    const ids = monthGroup.map((x) => x.id);
+    const fromIdx = ids.indexOf(draggedId);
+    const toIdx = ids.indexOf(targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    ids.splice(fromIdx, 1);
+    ids.splice(toIdx, 0, draggedId);
+    ids.forEach((id, i) => updMut.mutate({ id, data: { order: i } }));
+  };
+
   const isCurrentYear = year === today.getFullYear();
   // Today's horizontal position as percentage (0-100) of the 12-month span
   const todayLeftPct = isCurrentYear
@@ -297,8 +323,24 @@ export default function RoadmapTimeline({ projectId, canEdit }: Props) {
                     setDraggingId(item.id);
                   }}
                   onDragEnd={() => { setDraggingId(null); setHoverMonth(null); }}
+                  onDragOver={(e) => {
+                    if (!canEdit || !draggingId || draggingId === item.id) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'move';
+                  }}
+                  onDrop={(e) => {
+                    if (!canEdit) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const draggedId = e.dataTransfer.getData('text/roadmap-id');
+                    if (!draggedId || draggedId === item.id) return;
+                    reorderItems(draggedId, item.id);
+                    setDraggingId(null);
+                    setHoverMonth(null);
+                  }}
                   onClick={(e) => { e.stopPropagation(); if (canEdit) openEdit(item); }}
-                  className={`absolute ${c.bar} text-white rounded-md shadow-sm hover:shadow-md cursor-pointer flex items-center px-2.5 transition-all ${
+                  className={`absolute ${c.bar} text-white rounded-md shadow-sm hover:shadow-md cursor-grab active:cursor-grabbing flex items-center px-2.5 transition-all ${
                     draggingId === item.id ? 'opacity-50' : 'opacity-95 hover:opacity-100'
                   }`}
                   style={{
