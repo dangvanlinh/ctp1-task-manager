@@ -204,7 +204,24 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
                 }
               }}
             >
-              <td className="px-3 py-0 pl-12 truncate max-w-[180px]" title={task.title}>{task.title}</td>
+              <td className="px-3 py-0 pl-12 max-w-[180px]" title="Click để sửa">
+                <input
+                  defaultValue={task.title}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== task.title) onUpdateTask?.(task.id, { title: v });
+                    else if (!v) e.target.value = task.title;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') { e.preventDefault(); (e.currentTarget as HTMLInputElement).blur(); }
+                    if (e.key === 'Escape') { (e.currentTarget as HTMLInputElement).value = task.title; (e.currentTarget as HTMLInputElement).blur(); }
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  draggable={false}
+                  className="w-full bg-transparent outline-none border-0 px-1 py-0.5 hover:bg-[#FFF8F5] focus:bg-white focus:ring-1 focus:ring-[#F5A623] rounded text-[#2D1B14] truncate"
+                />
+              </td>
               <td className="px-3 py-0 text-gray-500 whitespace-nowrap">{formatDate(task.startDate)}</td>
               <td className="px-3 py-0 text-gray-500 whitespace-nowrap">{formatDate(task.endDate)}</td>
               <td className="px-3 py-0 text-gray-500 whitespace-nowrap">{user.name}</td>
