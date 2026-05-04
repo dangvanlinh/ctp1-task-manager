@@ -373,11 +373,19 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
               ))}
             </div>
 
-            {/* Build name label (left overlay) */}
-            <div className="absolute left-1 top-0 h-full flex items-center z-20">
+            {/* Build name "info pill" — solid bg with right shadow, sits ON TOP of timeline bars */}
+            <div
+              className="absolute left-0 top-0 h-full flex items-center z-20 px-1.5 gap-1"
+              style={{
+                background: 'linear-gradient(to right, #FFFFFF 0%, #FFFFFF 90%, rgba(255,255,255,0.85) 100%)',
+                boxShadow: '6px 0 12px -4px rgba(45,27,20,0.18)',
+                borderRight: '1px solid #FFE4D6',
+                maxWidth: '40%',
+              }}
+            >
               <button
                 onClick={() => toggleExpand(build.id)}
-                className="text-[10px] text-gray-400 hover:text-gray-600 mr-0.5 w-3"
+                className="text-[10px] text-[#8B6E60] hover:text-[#E8341A] w-3 flex-shrink-0"
               >
                 {isExpanded ? '▼' : '▶'}
               </button>
@@ -391,22 +399,23 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
                     if (e.key === 'Escape') setEditingBuildName(null);
                   }}
                   onBlur={() => handleRenameBuild(build.id)}
-                  className="text-xs font-medium bg-white border border-blue-400 rounded px-1 py-0.5 outline-none w-[110px]"
+                  className="text-xs font-medium bg-white border border-[#F5A623] rounded px-1 py-0.5 outline-none w-[140px] flex-shrink-0"
                 />
               ) : (
                 <span
-                  className="text-xs text-gray-500 font-medium bg-white/90 px-1 rounded cursor-pointer hover:text-blue-600 truncate max-w-[110px]"
-                  title="Double-click để đổi tên"
+                  className="text-xs text-[#2D1B14] font-semibold px-1 rounded cursor-pointer hover:text-[#E8341A] truncate max-w-[140px] flex-shrink-0"
+                  title={`${build.name} (Double-click để đổi tên)`}
                   onDoubleClick={() => { setEditingBuildName(build.id); setEditNameValue(build.name); }}
                 >
                   {build.name}
                 </span>
               )}
-              {/* Assignee avatars - click any to open popup */}
+              {/* Assignee avatars */}
               {build.assignees?.map((a) => (
                 <span
                   key={a.userId}
-                  className="text-[10px] bg-blue-100 text-blue-700 px-1.5 rounded ml-0.5 cursor-pointer whitespace-nowrap"
+                  className="text-[10px] px-1.5 rounded cursor-pointer whitespace-nowrap font-medium flex-shrink-0"
+                  style={{ background: '#FFF0EB', color: '#E8341A' }}
                   onClick={(e) => {
                     if (assigneePopup === build.id) { setAssigneePopup(null); return; }
                     const rect = e.currentTarget.getBoundingClientRect();
