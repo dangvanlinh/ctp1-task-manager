@@ -204,7 +204,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
                 }
               }}
             >
-              <td className="px-3 py-0 pl-12 max-w-[180px]" title="Click để sửa">
+              <td className="px-3 py-0 pl-12" title="Click để sửa">
                 <input
                   defaultValue={task.title}
                   onBlur={(e) => {
@@ -222,10 +222,10 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
                   className="w-full bg-transparent outline-none border-0 px-1 py-0.5 hover:bg-[#FFF8F5] focus:bg-white focus:ring-1 focus:ring-[#F5A623] rounded text-[#2D1B14] truncate"
                 />
               </td>
-              <td className="px-3 py-0 text-gray-500 whitespace-nowrap">{formatDate(task.startDate)}</td>
-              <td className="px-3 py-0 text-gray-500 whitespace-nowrap">{formatDate(task.endDate)}</td>
-              <td className="px-3 py-0 text-gray-500 whitespace-nowrap">{user.name}</td>
-              <td className="px-3 py-0 whitespace-nowrap">
+              <td className="px-2 py-0 text-[#8B6E60] whitespace-nowrap text-[11px]">{formatDate(task.startDate)}</td>
+              <td className="px-2 py-0 text-[#8B6E60] whitespace-nowrap text-[11px]">{formatDate(task.endDate)}</td>
+              <td className="px-2 py-0 text-[#8B6E60] truncate text-[11px]" title={user.name}>{user.name}</td>
+              <td className="px-2 py-0 whitespace-nowrap">
                 <div className="flex items-center gap-1.5">
                   <select
                     value={task.status}

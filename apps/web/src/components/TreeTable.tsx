@@ -23,14 +23,21 @@ interface Props {
 export default function TreeTable({ grouped, activeWeeks, month, year, expandedWeeks, expandedMembers, weeksWithTasks, onToggleWeek, onToggleMember, onCreateInlineTask, onAddWeek, onRemoveWeek, onDeleteTask, onUpdateTask, onReorderTasks, onRemoveMember }: Props) {
   return (
     <div className="overflow-auto text-xs">
-      <table className="w-full text-left">
+      <table className="w-full text-left table-fixed">
+        <colgroup>
+          <col />
+          <col style={{ width: 56 }} />
+          <col style={{ width: 56 }} />
+          <col style={{ width: 80 }} />
+          <col style={{ width: 80 }} />
+        </colgroup>
         <thead>
           <tr className="border-b border-[#FFE4D6] text-xs text-[#8B6E60] sticky top-0 whitespace-nowrap" style={{ height: 32, background: '#FFF8F5' }}>
             <th className="px-3 py-0 font-medium">Summary</th>
-            <th className="px-3 py-0 font-medium">Start</th>
-            <th className="px-3 py-0 font-medium">End</th>
-            <th className="px-3 py-0 font-medium">Assignee</th>
-            <th className="px-3 py-0 font-medium">Status</th>
+            <th className="px-2 py-0 font-medium text-[10px] uppercase tracking-wider">Start</th>
+            <th className="px-2 py-0 font-medium text-[10px] uppercase tracking-wider">End</th>
+            <th className="px-2 py-0 font-medium text-[10px] uppercase tracking-wider">Assign</th>
+            <th className="px-2 py-0 font-medium text-[10px] uppercase tracking-wider">Status</th>
           </tr>
         </thead>
         <tbody>
