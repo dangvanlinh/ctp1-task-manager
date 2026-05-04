@@ -468,20 +468,32 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
               {/* Assignee popup */}
               {assigneePopup === build.id && (
                 <>
-                <div className="fixed inset-0 z-40" onClick={() => setAssigneePopup(null)} />
+                <div
+                  className="fixed inset-0 z-[100]"
+                  onClick={() => setAssigneePopup(null)}
+                />
                 <div
                   data-assignee-popup
-                  className="fixed z-50 bg-white border rounded-lg shadow-xl p-2 w-48"
-                  style={{ top: popupPos.top, left: popupPos.left }}
+                  className="fixed z-[110] bg-white border border-[#FFE4D6] rounded-lg shadow-xl p-2 w-52 max-h-[60vh] overflow-y-auto"
+                  style={{
+                    top: Math.min(popupPos.top, window.innerHeight - 320),
+                    left: Math.min(popupPos.left, window.innerWidth - 220),
+                    boxShadow: '0 12px 40px rgba(45,27,20,0.18)',
+                  }}
                   onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
-                  <div className="text-xs text-gray-500 mb-1.5 font-medium">Assign member:</div>
+                  <div className="text-xs text-[#8B6E60] mb-1.5 font-semibold uppercase tracking-wider px-1">
+                    Assign member · {build.name}
+                  </div>
                   {users.map((u) => {
                     const isAssigned = build.assignees?.some((a) => a.userId === u.id);
                     return (
                       <button
                         key={u.id}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           const firstPhase = phases[0];
                           const lastPhase = phases[phases.length - 1];
                           const startDay = firstPhase?.startDay ?? 1;
@@ -492,13 +504,22 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
                             onAssignBuild?.(build.id, u.id, build.name, startDay, endDay);
                           }
                         }}
-                        className={`flex items-center gap-2 w-full text-left text-sm px-2 py-1.5 rounded ${isAssigned ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'}`}
+                        className={`flex items-center gap-2 w-full text-left text-sm px-2 py-1.5 rounded transition-colors ${
+                          isAssigned ? 'bg-[#FFF0EB] text-[#E8341A]' : 'hover:bg-[#FFF8F5] text-[#2D1B14]'
+                        }`}
                       >
-                        <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-medium ${isAssigned ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
-                          {u.name?.charAt(0)}
+                        <span
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white"
+                          style={{
+                            background: isAssigned
+                              ? 'linear-gradient(135deg, #E8341A 0%, #F5A623 100%)'
+                              : '#8B6E60',
+                          }}
+                        >
+                          {u.name?.charAt(0).toUpperCase()}
                         </span>
-                        <span>{u.name}</span>
-                        {isAssigned && <span className="ml-auto text-blue-500">✓</span>}
+                        <span className="flex-1">{u.name}</span>
+                        {isAssigned && <span className="text-[#E8341A] font-bold">✓</span>}
                       </button>
                     );
                   })}
