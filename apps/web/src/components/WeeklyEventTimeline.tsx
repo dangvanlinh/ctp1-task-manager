@@ -225,7 +225,8 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(() => {
       const snap = latestSnapshot.current;
-      saveWeeklyEvents({ projectId, month, year, data: snap.data, configs: snap.configs }).catch(() => {});
+      saveWeeklyEvents({ projectId, month, year, data: snap.data, configs: snap.configs })
+        .catch((err) => console.error('[WeeklyEventTimeline] save failed:', err?.message || err, { projectId, month, year }));
     }, 300);
   }, [projectId, month, year]);
 
@@ -253,7 +254,8 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
           // DB empty — migrate local → DB if we have anything
           const localWeeks = loadEventWeeks(projectId, month, year);
           if (localWeeks.length > 0) {
-            saveWeeklyEvents({ projectId, month, year, data: localWeeks, configs: events }).catch(() => {});
+            saveWeeklyEvents({ projectId, month, year, data: localWeeks, configs: events })
+              .catch((err) => console.error('[WeeklyEventTimeline] initial migrate failed:', err?.message || err, { projectId, month, year }));
           }
         }
         if (remote.configs && (remote.configs as any[]).length > 0) {
@@ -261,7 +263,7 @@ export default function WeeklyEventTimeline({ projectId, month, year, dayWidth, 
           localStorage.setItem(eventConfigsKey, JSON.stringify(remote.configs));
         }
       })
-      .catch(() => { /* offline-tolerant */ });
+      .catch((err) => console.error('[WeeklyEventTimeline] fetch failed:', err?.message || err, { projectId, month, year }));
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, month, year]);
