@@ -664,7 +664,7 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
             <div className="border-b bg-slate-50 px-3 py-2">
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <div className="text-xs text-gray-400 font-semibold uppercase mb-1">KPI / Mục tiêu</div>
+                  <div className="text-xs text-gray-400 font-semibold uppercase mb-1">Status</div>
                   <textarea
                     value={notes}
                     onChange={(e) => updateNotes(build.id, e.target.value)}
