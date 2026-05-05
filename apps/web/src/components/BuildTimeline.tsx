@@ -386,12 +386,12 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
                     if (e.key === 'Escape') setEditingBuildName(null);
                   }}
                   onBlur={() => handleRenameBuild(build.id)}
-                  className="text-xs font-medium bg-white border border-[#F5A623] rounded px-1 py-0.5 outline-none w-[140px] flex-shrink-0"
+                  className="text-xs font-medium bg-white border border-[#F5A623] rounded px-1 py-0.5 outline-none min-w-[200px]"
                 />
               ) : (
                 <span
-                  className="text-xs text-[#2D1B14] font-semibold px-1 rounded cursor-pointer hover:text-[#E8341A] truncate max-w-[140px] flex-shrink-0"
-                  title={`${build.name} (Double-click để đổi tên)`}
+                  className="text-xs text-[#2D1B14] font-semibold px-1 rounded cursor-pointer hover:text-[#E8341A] whitespace-nowrap"
+                  title="Double-click để đổi tên"
                   onDoubleClick={() => { setEditingBuildName(build.id); setEditNameValue(build.name); }}
                 >
                   {build.name}
