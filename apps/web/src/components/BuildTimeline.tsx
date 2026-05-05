@@ -665,18 +665,10 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
               <div className="flex gap-4">
                 <div className="flex-1">
                   <div className="text-xs text-gray-400 font-semibold uppercase mb-1">Status</div>
-                  <textarea
+                  <AutoGrowTextarea
                     value={notes}
-                    onChange={(e) => updateNotes(build.id, e.target.value)}
+                    onChange={(v) => updateNotes(build.id, v)}
                     placeholder="VD: Tăng 20% conversion rate, hoàn thành trước 15/4..."
-                    className="w-full text-xs text-gray-700 bg-white border rounded px-2 py-1.5 outline-none focus:border-blue-400 resize-none leading-relaxed overflow-hidden"
-                    rows={Math.max(3, (notes.match(/\n/g)?.length ?? 0) + 1)}
-                    ref={(el) => {
-                      if (el) {
-                        el.style.height = 'auto';
-                        el.style.height = el.scrollHeight + 'px';
-                      }
-                    }}
                   />
                 </div>
                 <div className="w-48 flex-shrink-0">
@@ -748,6 +740,29 @@ function ResizeHandle({ side, dayWidth, startDay, endDay, onDrag }: {
     <div
       className={`absolute ${side === 'left' ? 'left-0' : 'right-0'} top-0 bottom-0 w-2 cursor-col-resize hover:bg-black/20`}
       onMouseDown={handleMouseDown}
+    />
+  );
+}
+
+// Textarea that auto-grows to fit content, no scrollbar
+function AutoGrowTextarea({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const resize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }, []);
+  useEffect(() => { resize(); }, [value, resize]);
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => { onChange(e.target.value); resize(); }}
+      placeholder={placeholder}
+      rows={3}
+      className="w-full text-xs text-gray-700 bg-white border rounded px-2 py-1.5 outline-none focus:border-[#F5A623] resize-none leading-relaxed overflow-hidden block"
+      style={{ minHeight: 60 }}
     />
   );
 }
