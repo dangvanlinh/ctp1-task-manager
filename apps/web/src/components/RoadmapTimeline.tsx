@@ -83,10 +83,13 @@ export default function RoadmapTimeline({
   }, [editingRev]);
 
   const revMap = new Map(revenues.map((r) => [r.month, Number(r.amount)]));
+  // YTD cutoff: include all months that have ENDED.
+  // Current year → only months strictly before current month (current month not yet finished).
+  // Past year → all 12. Future year → 0.
   const ytdCutoff =
     year < today.getFullYear() ? 12 :
     year > today.getFullYear() ? 0 :
-    today.getMonth() + 1;
+    today.getMonth(); // 0-based current month index = number of completed months
   const ytdTotal = Array.from(revMap.entries())
     .filter(([m]) => m <= ytdCutoff)
     .reduce((sum, [, amt]) => sum + amt, 0);
@@ -101,7 +104,8 @@ export default function RoadmapTimeline({
     : 0;
 
   const startEditRev = (target: number | 'kpi') => {
-    if (!canEdit) return;
+    console.log('[Rev] startEdit', { target, canEdit });
+    if (!canEdit) { console.warn('[Rev] startEdit blocked: canEdit=false'); return; }
     const current = target === 'kpi' ? kpi : revMap.get(target);
     setRevDraft(current ? String(current) : '');
     setRevError(null);
@@ -110,7 +114,9 @@ export default function RoadmapTimeline({
   const commitRev = () => {
     if (editingRev === null) return;
     const trimmed = revDraft.trim();
+    console.log('[Rev] commit', { editingRev, draft: trimmed });
     const apply = (amount: number) => {
+      console.log('[Rev] applying', { editingRev, amount });
       if (editingRev === 'kpi') onSaveKpi?.(amount);
       else onSaveRevenue?.(editingRev, amount);
     };
@@ -336,11 +342,13 @@ export default function RoadmapTimeline({
           {/* Progress bar */}
           <div className="px-2 pt-3 pb-2">
             <div className="flex items-center justify-between mb-1.5 px-1">
-              <span className="text-[10px] uppercase tracking-[0.12em] text-[#8B6E60] font-bold">Progress {year}</span>
+              <span className="flex items-baseline gap-2">
+                <span className="text-[10px] uppercase tracking-[0.12em] text-[#8B6E60] font-bold">Progress {year}</span>
+                <span className="text-[11px] font-bold text-[#2D1B14]">{formatVnd(ytdTotal)}</span>
+                {pct !== null && <span className="text-[11px] font-semibold" style={{ color: '#E8341A' }}>({pct}%)</span>}
+                <span className="text-[10px] text-[#8B6E60] italic">cộng dồn các tháng đã đi qua</span>
+              </span>
               <span className="text-[11px] text-[#8B6E60]">
-                <span className="font-bold text-[#2D1B14]">{formatVnd(ytdTotal)}</span>
-                {pct !== null && <span className="font-semibold ml-1" style={{ color: '#E8341A' }}>({pct}%)</span>}
-                <span className="mx-1.5 text-[#FFD4C4]">/</span>
                 {editingRev === 'kpi' ? (
                   <input
                     ref={revInputRef}
