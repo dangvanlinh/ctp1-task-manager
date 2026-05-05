@@ -332,10 +332,9 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
         const notes = notesMap[build.id] ?? '';
 
         return (
-          <div key={build.id}>
           <div
-            className={`relative border-b group/row ${draggingBuildId === build.id ? 'opacity-40' : ''} ${dragOverBuildId === build.id ? 'border-t-2 border-blue-400' : ''}`}
-            style={{ height: ROW_HEIGHT }}
+            key={build.id}
+            className={`group/row ${draggingBuildId === build.id ? 'opacity-40' : ''} ${dragOverBuildId === build.id ? 'border-t-2 border-[#F5A623]' : ''}`}
             draggable={!!onReorderBuilds}
             onDragStart={(e) => {
               e.dataTransfer.setData('text/build-id', build.id);
@@ -366,22 +365,10 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
               onReorderBuilds(ids);
             }}
           >
-            {/* Background grid */}
-            <div className="absolute inset-0 flex">
-              {days.map((d) => (
-                <div key={d} className={`border-r h-full ${d <= daysInMonth && isWeekend(year, month, d) ? 'bg-gray-50' : ''}`} style={{ width: dayWidth, minWidth: dayWidth }} />
-              ))}
-            </div>
-
-            {/* Build name "info pill" — solid bg with right shadow, sits ON TOP of timeline bars */}
+            {/* Row 1: Info (name + assignees + buttons) */}
             <div
-              className="absolute left-0 top-0 h-full flex items-center z-20 px-1.5 gap-1"
-              style={{
-                background: 'linear-gradient(to right, #FFFFFF 0%, #FFFFFF 90%, rgba(255,255,255,0.85) 100%)',
-                boxShadow: '6px 0 12px -4px rgba(45,27,20,0.18)',
-                borderRight: '1px solid #FFE4D6',
-                maxWidth: '40%',
-              }}
+              className="flex items-center gap-1 px-2 border-b border-[#FFE4D6] relative"
+              style={{ height: 26, background: '#FFF8F5' }}
             >
               <button
                 onClick={() => toggleExpand(build.id)}
@@ -536,6 +523,16 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
                 </>
               )}
             </div>
+            {/* End Row 1 — Info row */}
+
+            {/* Row 2: Timeline (background grid + phase bars) */}
+            <div className="relative border-b border-[#FFE4D6]" style={{ height: ROW_HEIGHT }}>
+              {/* Background grid */}
+              <div className="absolute inset-0 flex">
+                {days.map((d) => (
+                  <div key={d} className={`border-r border-[#FFE4D6]/60 h-full ${d <= daysInMonth && isWeekend(year, month, d) ? 'bg-[#FFF0EB]/40' : ''}`} style={{ width: dayWidth, minWidth: dayWidth }} />
+                ))}
+              </div>
 
             {/* Phase bars */}
             {phases.map((phase, pi) => {
@@ -657,9 +654,10 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
 
             {/* Today indicator */}
             {isCurrentMonth && (
-              <div className="absolute top-0 bottom-0 w-0.5 bg-blue-500 z-10 pointer-events-none" style={{ left: (todayDay - 1) * dayWidth + dayWidth / 2 }} />
+              <div className="absolute top-0 bottom-0 w-0.5 z-10 pointer-events-none" style={{ left: (todayDay - 1) * dayWidth + dayWidth / 2, background: '#E8341A' }} />
             )}
-          </div>
+            </div>
+            {/* End Row 2 — Timeline row */}
 
           {/* Expandable notes area */}
           {isExpanded && (
