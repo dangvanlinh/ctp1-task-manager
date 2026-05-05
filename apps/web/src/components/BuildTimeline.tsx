@@ -669,8 +669,14 @@ export default function BuildTimeline({ builds, users, month, year, dayWidth, to
                     value={notes}
                     onChange={(e) => updateNotes(build.id, e.target.value)}
                     placeholder="VD: Tăng 20% conversion rate, hoàn thành trước 15/4..."
-                    className="w-full text-xs text-gray-700 bg-white border rounded px-2 py-1.5 outline-none focus:border-blue-400 resize-none leading-relaxed"
-                    rows={3}
+                    className="w-full text-xs text-gray-700 bg-white border rounded px-2 py-1.5 outline-none focus:border-blue-400 resize-none leading-relaxed overflow-hidden"
+                    rows={Math.max(3, (notes.match(/\n/g)?.length ?? 0) + 1)}
+                    ref={(el) => {
+                      if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = el.scrollHeight + 'px';
+                      }
+                    }}
                   />
                 </div>
                 <div className="w-48 flex-shrink-0">
