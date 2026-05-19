@@ -239,8 +239,11 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
                   </select>
                   {onDeleteTask && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
-                      className="opacity-0 group-hover/task:opacity-100 text-red-400 hover:text-red-600 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Xoá task "${task.title}"?`)) onDeleteTask(task.id);
+                      }}
+                      className="text-[#FFD4C4] hover:text-[#E8341A] hover:bg-[#FFF0EB] text-xs px-1.5 py-0.5 rounded transition-colors"
                       title="Xóa task"
                     >
                       ✕
