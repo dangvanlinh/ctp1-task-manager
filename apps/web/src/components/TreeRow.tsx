@@ -243,7 +243,7 @@ function MemberRow({ user, tasks, expanded, onToggle, onCreateInlineTask, onDele
                         e.stopPropagation();
                         if (confirm(`Xoá task "${task.title}"?`)) onDeleteTask(task.id);
                       }}
-                      className="text-[#FFD4C4] hover:text-[#E8341A] hover:bg-[#FFF0EB] text-xs px-1.5 py-0.5 rounded transition-colors"
+                      className="text-[#8B6E60] hover:text-white hover:bg-[#E8341A] text-xs px-1.5 py-0.5 rounded transition-colors font-bold flex-shrink-0"
                       title="Xóa task"
                     >
                       ✕

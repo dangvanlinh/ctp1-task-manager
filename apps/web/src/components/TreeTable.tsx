@@ -29,7 +29,7 @@ export default function TreeTable({ grouped, activeWeeks, month, year, expandedW
           <col style={{ width: 56 }} />
           <col style={{ width: 56 }} />
           <col style={{ width: 80 }} />
-          <col style={{ width: 80 }} />
+          <col style={{ width: 110 }} />
         </colgroup>
         <thead>
           <tr className="border-b border-[#FFE4D6] text-xs text-[#8B6E60] sticky top-0 whitespace-nowrap" style={{ height: 32, background: '#FFF8F5' }}>
